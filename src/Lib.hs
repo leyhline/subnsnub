@@ -4,6 +4,8 @@ module Lib
     ) where
 
 import Text.Printf
+import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Maybe (mapMaybe)
 import Text.XML.Light
 
@@ -18,13 +20,13 @@ data Caption = Caption
   { counter   :: Integer
   , appear    :: Time
   , disappear :: Time
-  , text      :: String
+  , text      :: Text
   }
 
 instance Show Caption where
-  show (Caption c a da t) = concat [show c, "\n", show a, " --> ", show da, "\n", t]
+  show (Caption c a da t) = concat [show c, "\n", show a, " --> ", show da, "\n", T.unpack t]
 
-xmlToSrt :: String -> [Caption]
+xmlToSrt :: Text -> [Caption]
 xmlToSrt = concatMap xmlElementToSrt . mapMaybe filterHtmlElement . parseXML
   where
     filterHtmlElement :: (Content -> Maybe Element)
@@ -50,16 +52,19 @@ extractCaptions = foldl folder [] . filterChildrenName isP
     mapper i (Element _ _ contents _) =
       let (h1, m1) = (i-1) `divMod` 60
           (h2, m2) =  i    `divMod` 60
-          t = concatMap extractText contents
-          t' = if t == "" then concatMap showContent contents else t
+          t = extractText contents
+          t' = if t == "" then T.concat $ map (T.pack . showContent) contents else t
       in Caption i (Time h1 m1 0 0) (Time h2 m2 0 0) t'
 
-extractText :: Content -> String
-extractText (Elem (Element (QName name _ _) _ contents _)) =
-  let continue = concatMap extractText contents
+extractText :: [Content] -> Text
+extractText = T.concat . map extractText'
+
+extractText' :: Content -> Text
+extractText' (Elem (Element (QName name _ _) _ contents _)) =
+  let continue = extractText contents
   in case name of
     "span" -> continue
     "ruby" -> continue
     _      -> ""  -- ignores furigana
-extractText (Text (CData _ t _)) = t
-extractText _ = ""
+extractText' (Text (CData _ t _)) = T.pack t
+extractText' _ = ""

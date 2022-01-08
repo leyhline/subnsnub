@@ -20,6 +20,7 @@ description:         Please see the README on GitHub at <https://github.com/leyh
 
 dependencies:
 - base >= 4.7 && < 5
+- text
 
 ghc-options:
 - -Wall
@@ -27,6 +28,9 @@ ghc-options:
 - -Wincomplete-record-updates
 - -Wincomplete-uni-patterns
 - -Wredundant-constraints
+
+default-extensions:
+- OverloadedStrings
 
 library:
   source-dirs: src

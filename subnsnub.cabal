@@ -31,9 +31,12 @@ library
       Paths_subnsnub
   hs-source-dirs:
       src
+  default-extensions:
+      OverloadedStrings
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , text
     , xml
   default-language: Haskell2010
 
@@ -43,10 +46,13 @@ executable subnsnub-exe
       Paths_subnsnub
   hs-source-dirs:
       app
+  default-extensions:
+      OverloadedStrings
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , subnsnub
+    , text
   default-language: Haskell2010
 
 test-suite subnsnub-test
@@ -56,8 +62,11 @@ test-suite subnsnub-test
       Paths_subnsnub
   hs-source-dirs:
       test
+  default-extensions:
+      OverloadedStrings
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , subnsnub
+    , text
   default-language: Haskell2010
