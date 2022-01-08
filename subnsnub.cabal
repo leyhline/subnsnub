@@ -1,0 +1,63 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           subnsnub
+version:        0.1.0.0
+synopsis:       helps a person to create subtitles for audio books
+description:    Please see the README on GitHub at <https://github.com/leyhline/subnsnub#readme>
+category:       Media
+homepage:       https://github.com/leyhline/subnsnub#readme
+bug-reports:    https://github.com/leyhline/subnsnub/issues
+author:         Thomas Leyh
+maintainer:     thomas.leyh@mailbox.org
+copyright:      (C) 2022  Thomas Leyh <thomas.leyh@mailbox.org>
+license:        GPL-3.0-only
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/leyhline/subnsnub
+
+library
+  exposed-modules:
+      Lib
+  other-modules:
+      Paths_subnsnub
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , xml
+  default-language: Haskell2010
+
+executable subnsnub-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_subnsnub
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , subnsnub
+  default-language: Haskell2010
+
+test-suite subnsnub-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_subnsnub
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , subnsnub
+  default-language: Haskell2010
