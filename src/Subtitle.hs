@@ -42,14 +42,14 @@ xmlElementToSrt = maybe [] extractCaptions . filterElement isDivMain
     isDivMain _ = False
 
 extractCaptions :: Element -> [Caption]
-extractCaptions = reverse . foldl foldToCaptions [] . filterChildrenName isP
+extractCaptions topElem = foldr foldToCaptions [] paragraphs
   where
-    isP :: QName -> Bool
+    paragraphs = filterChildrenName isP topElem
     isP (QName "p" _ _) = True
     isP _ = False
-    foldToCaptions :: [Caption] -> Element -> [Caption]
-    foldToCaptions [] e = [makeCaption 1 e]
-    foldToCaptions cs@((Caption i _ _ _):_) e = makeCaption (i+1) e : cs
+    foldToCaptions :: Element -> [Caption] -> [Caption]
+    foldToCaptions e [] = [makeCaption (toInteger $ length paragraphs) e]
+    foldToCaptions e cs@((Caption i _ _ _):_) = makeCaption (i-1) e : cs
     makeCaption :: Integer -> Element -> Caption
     makeCaption i (Element _ _ contents _) =
       let (h1, m1) = (i-1) `divMod` 60
