@@ -28,6 +28,7 @@ ghc-options:
 - -Wincomplete-record-updates
 - -Wincomplete-uni-patterns
 - -Wredundant-constraints
+- -Wno-unused-do-bind
 
 default-extensions:
 - OverloadedStrings
@@ -35,6 +36,8 @@ default-extensions:
 library:
   source-dirs: src
   dependencies:
+  - attoparsec
+  - process
   - xml
 
 executables:
@@ -58,3 +61,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - subnsnub
+    - hspec

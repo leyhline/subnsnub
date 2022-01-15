@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import Subtitle
 
 main :: IO ()
 main = return ()

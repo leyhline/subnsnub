@@ -1,20 +1,14 @@
-module Lib
-    ( xmlToSrt
-    , Caption(..)
-    ) where
+module Subtitle
+  ( xmlToSrt
+  , Caption(..)
+  , Time(..)
+  ) where
 
-import Text.Printf
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Maybe (mapMaybe)
 import Text.XML.Light
-
---               hour min  sec  ms
-data Time = Time Integer Integer Integer Integer
-  deriving (Eq, Ord)
-
-instance Show Time where
-  show (Time h m s ms) = printf "%02d:%02d:%02d,%03d" h m s ms
+import Text.Printf
 
 data Caption = Caption
   { counter   :: Integer
@@ -22,9 +16,17 @@ data Caption = Caption
   , disappear :: Time
   , text      :: Text
   }
+  deriving Eq
 
 instance Show Caption where
   show (Caption c a da t) = concat [show c, "\n", show a, " --> ", show da, "\n", T.unpack t]
+
+--               hour min  sec  ms
+data Time = Time Integer Integer Integer Integer
+  deriving (Eq, Ord)
+
+instance Show Time where
+  show (Time h m s ms) = printf "%02d:%02d:%02d,%03d" h m s ms
 
 xmlToSrt :: Text -> [Caption]
 xmlToSrt = concatMap xmlElementToSrt . mapMaybe filterHtmlElement . parseXML
@@ -40,16 +42,16 @@ xmlElementToSrt = maybe [] extractCaptions . filterElement isDivMain
     isDivMain _ = False
 
 extractCaptions :: Element -> [Caption]
-extractCaptions = foldl folder [] . filterChildrenName isP
+extractCaptions = reverse . foldl foldToCaptions [] . filterChildrenName isP
   where
     isP :: QName -> Bool
     isP (QName "p" _ _) = True
     isP _ = False
-    folder :: [Caption] -> Element -> [Caption]
-    folder [] e = [mapper 1 e]
-    folder cs@((Caption i _ _ _):_) e = mapper (i+1) e : cs
-    mapper :: Integer -> Element -> Caption
-    mapper i (Element _ _ contents _) =
+    foldToCaptions :: [Caption] -> Element -> [Caption]
+    foldToCaptions [] e = [makeCaption 1 e]
+    foldToCaptions cs@((Caption i _ _ _):_) e = makeCaption (i+1) e : cs
+    makeCaption :: Integer -> Element -> Caption
+    makeCaption i (Element _ _ contents _) =
       let (h1, m1) = (i-1) `divMod` 60
           (h2, m2) =  i    `divMod` 60
           t = extractText contents
