@@ -1,13 +1,21 @@
 module SilenceDetect
   ( detectSilence
+  , parseSilences
+  , SilenceInterval(..)
   ) where
 
+import Control.Exception
 import Data.Attoparsec.Text
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import System.IO
 import System.Process
+
+data SilenceDetectException = ParserException String
+  | ProcessException String
+  deriving (Show, Eq)
+
+instance Exception SilenceDetectException
 
 data SilenceInterval = SilenceInterval Double Double
  deriving (Eq, Show)
@@ -18,12 +26,12 @@ detectSilence audioFile =
     createProc = proc "ffmpeg" args
     args = ["-i", audioFile, "-af", "silencedetect=d=1", "-f", "null"]
     f _ _ stderrHandle _ = maybe reportFailure runParser stderrHandle
-    reportFailure = return []
+    reportFailure = throw $ ProcessException $ "ffmpeg " ++ unwords args
     runParser = fmap (parseSilences . T.pack) . hGetContents
   in withCreateProcess createProc f
 
 parseSilences :: Text -> [SilenceInterval]
-parseSilences input = fromMaybe [] (maybeResult $ parse silenceParser input)
+parseSilences input = either (throw . ParserException) id (parseOnly silenceParser input)
 
 silenceParser :: Parser [SilenceInterval]
 silenceParser = many' intervalParser
@@ -39,6 +47,8 @@ silenceParser = many' intervalParser
       return $ SilenceInterval startTime stopTime
     headerParser :: Parser ()
     headerParser = do
+      skipWhile ('[' /=)
       string "[silencedetect"
-      takeWhile1 (']' ==)
+      skipWhile (']' /=)
+      skip (']' ==)
       skipSpace

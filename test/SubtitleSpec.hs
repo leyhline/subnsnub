@@ -3,7 +3,6 @@ module SubtitleSpec
   ) where
 
 import Subtitle
-import Data.Foldable
 import qualified Data.Text.IO as T
 import Test.Hspec
 
