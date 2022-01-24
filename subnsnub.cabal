@@ -28,6 +28,7 @@ library
   exposed-modules:
       SilenceDetect
       Subtitle
+      XmlExtract
   other-modules:
       Paths_subnsnub
   hs-source-dirs:
