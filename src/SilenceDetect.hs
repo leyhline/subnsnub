@@ -22,18 +22,16 @@ data SilenceInterval = SilenceInterval Double Double
  deriving (Eq, Show)
 
 detectSilence :: FilePath -> IO [SilenceInterval]
-detectSilence audioFile = let
-  args = ["-i", audioFile, "-af", "silencedetect=d=1", "-f", "null", "-"]
-  cmd = (proc "ffmpeg" args){ std_err = CreatePipe }
-  cmdStr = "'ffmpeg " ++ unwords args ++ "'"
-  f :: Maybe Handle -> Maybe Handle -> Maybe Handle -> ProcessHandle -> IO [SilenceInterval]
-  f _ _ (Just errHdl) p = do
-    exitCode <- waitForProcess p
-    case exitCode of
-      ExitSuccess -> parseSilences . T.pack <$> hGetContents errHdl
-      ExitFailure code -> throw $ ProcessException $ cmdStr ++ " quit with exit code " ++ show code
-  f _ _ _ _ = throw $ ProcessException $ "Failed to create pipe for stderr of " ++ cmdStr
-  in withCreateProcess cmd f
+detectSilence audioFile = do
+  let
+    args = ["-i", audioFile, "-af", "silencedetect=d=1", "-f", "null", "-"]
+    cmd = (proc "ffmpeg" args){ std_err = CreatePipe }
+    cmdStr = "'ffmpeg " ++ unwords args ++ "'"
+  (_, _, Just errHdl, p) <- createProcess cmd
+  exitCode <- waitForProcess p
+  case exitCode of
+    ExitSuccess -> parseSilences . T.pack <$> hGetContents errHdl
+    ExitFailure code -> throw $ ProcessException $ cmdStr ++ " quit with exit code " ++ show code
 
 parseSilences :: Text -> [SilenceInterval]
 parseSilences input = either (throw . ParserException) id (parseOnly silenceParser input)
