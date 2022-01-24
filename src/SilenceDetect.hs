@@ -10,6 +10,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import System.IO
 import System.Process
+import System.Exit
 
 data SilenceDetectException = ParserException String
   | ProcessException String
@@ -21,17 +22,18 @@ data SilenceInterval = SilenceInterval Double Double
  deriving (Eq, Show)
 
 detectSilence :: FilePath -> IO [SilenceInterval]
-detectSilence audioFile =
-  let
-    createProc = proc "ffmpeg" args
-    args = ["-i", audioFile, "-af", "silencedetect=d=1", "-f", "null", "-"]
-    f :: Maybe Handle -> Maybe Handle -> Maybe Handle -> ProcessHandle -> IO [SilenceInterval]
-    f _ _ stderrHandle procHandle = do
-      let stderr = hGetContents (maybe reportFailure id stderrHandle)
-      exitCode <- waitForProcess procHandle
-      stderr >>= return . parseSilences . T.pack
-    reportFailure = throw $ ProcessException $ "ffmpeg " ++ unwords args
-  in withCreateProcess createProc f
+detectSilence audioFile = let
+  args = ["-i", audioFile, "-af", "silencedetect=d=1", "-f", "null", "-"]
+  cmd = (proc "ffmpeg" args){ std_err = CreatePipe }
+  cmdStr = "'ffmpeg " ++ unwords args ++ "'"
+  f :: Maybe Handle -> Maybe Handle -> Maybe Handle -> ProcessHandle -> IO [SilenceInterval]
+  f _ _ (Just errHdl) p = do
+    exitCode <- waitForProcess p
+    case exitCode of
+      ExitSuccess -> parseSilences . T.pack <$> hGetContents errHdl
+      ExitFailure code -> throw $ ProcessException $ cmdStr ++ " quit with exit code " ++ show code
+  f _ _ _ _ = throw $ ProcessException $ "Failed to create pipe for stderr of " ++ cmdStr
+  in withCreateProcess cmd f
 
 parseSilences :: Text -> [SilenceInterval]
 parseSilences input = either (throw . ParserException) id (parseOnly silenceParser input)
@@ -41,17 +43,14 @@ silenceParser = many' intervalParser
   where
     intervalParser :: Parser SilenceInterval
     intervalParser = do
-      headerParser
+      skipHeader
       string "silence_start: "
       startTime <- double
-      headerParser
+      skipHeader
       string "silence_end: "
-      stopTime <- double
-      return $ SilenceInterval startTime stopTime
-    headerParser :: Parser ()
-    headerParser = do
-      skipWhile ('[' /=)
-      string "[silencedetect"
-      skipWhile (']' /=)
-      skip (']' ==)
+      SilenceInterval startTime <$> double
+    skipHeader :: Parser ()
+    skipHeader = do
+      manyTill (skipWhile ('[' /=) >> anyChar) (string "silencedetect")
+      skipWhile (']' /=) >> anyChar
       skipSpace
