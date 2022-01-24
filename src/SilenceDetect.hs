@@ -24,10 +24,13 @@ detectSilence :: FilePath -> IO [SilenceInterval]
 detectSilence audioFile =
   let
     createProc = proc "ffmpeg" args
-    args = ["-i", audioFile, "-af", "silencedetect=d=1", "-f", "null"]
-    f _ _ stderrHandle _ = maybe reportFailure runParser stderrHandle
+    args = ["-i", audioFile, "-af", "silencedetect=d=1", "-f", "null", "-"]
+    f :: Maybe Handle -> Maybe Handle -> Maybe Handle -> ProcessHandle -> IO [SilenceInterval]
+    f _ _ stderrHandle procHandle = do
+      let stderr = hGetContents (maybe reportFailure id stderrHandle)
+      exitCode <- waitForProcess procHandle
+      stderr >>= return . parseSilences . T.pack
     reportFailure = throw $ ProcessException $ "ffmpeg " ++ unwords args
-    runParser = fmap (parseSilences . T.pack) . hGetContents
   in withCreateProcess createProc f
 
 parseSilences :: Text -> [SilenceInterval]
