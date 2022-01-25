@@ -44,18 +44,32 @@ library
     , xml
   default-language: Haskell2010
 
-executable subnsnub-exe
+executable subnsnub-paragraph
   main-is: Main.hs
   other-modules:
       Paths_subnsnub
   hs-source-dirs:
-      app
+      app-paragraph
   default-extensions:
       OverloadedStrings
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , optparse-applicative
+    , subnsnub
+    , text
+  default-language: Haskell2010
+
+executable subnsnub-silence
+  main-is: Main.hs
+  other-modules:
+      Paths_subnsnub
+  hs-source-dirs:
+      app-silence
+  default-extensions:
+      OverloadedStrings
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
     , subnsnub
     , text
   default-language: Haskell2010
