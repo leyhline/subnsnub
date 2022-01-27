@@ -21,10 +21,10 @@ instance Exception SilenceDetectException
 data SilenceInterval = SilenceInterval Double Double
  deriving (Eq, Show)
 
-detectSilence :: FilePath -> IO [SilenceInterval]
-detectSilence audioFile = do
+detectSilence :: Double -> FilePath -> IO [SilenceInterval]
+detectSilence d audioFile = do
   let
-    args = ["-i", audioFile, "-af", "silencedetect=d=1", "-f", "null", "-"]
+    args = ["-i", audioFile, "-af", "silencedetect=d=" ++ show d, "-f", "null", "-"]
     cmd = (proc "ffmpeg" args){ std_err = CreatePipe }
     cmdStr = "'ffmpeg " ++ unwords args ++ "'"
   (_, _, Just errHdl, p) <- createProcess cmd

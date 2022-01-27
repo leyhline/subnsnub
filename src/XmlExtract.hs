@@ -26,16 +26,17 @@ processDivs topE = map extractText paragraphs
 
 extractText :: Element -> Text
 extractText (Element _ _ contents _) =
-  let text = T.concat $ map processSpan contents
+  let text = T.concat $ map processLine contents
       verbatim = T.concat $ map (T.pack . showContent) contents
   in if text == "" then verbatim else text
 
-processSpan :: Content -> Text
-processSpan (Elem (Element (QName name _ _) _ contents _)) =
-  let continue = T.concat $ map processSpan contents
-  in case name of
-    "span" -> continue
-    "ruby" -> continue
-    _      -> ""  -- ignore furigana
-processSpan (Text (CData _ t _)) = T.pack t
-processSpan _ = ""
+processLine :: Content -> Text
+processLine (Elem (Element (QName name _ _) _ contents _))
+  | name `elem` preserveTags = T.concat [T.concat ["<", T.pack name, ">"], processChildren, T.concat ["</", T.pack name, ">"]]
+  | name `elem` discardTags  = processChildren
+  | otherwise                = T.empty
+  where preserveTags = ["ruby", "rt", "u", "b", "i"]
+        discardTags  = ["span"]
+        processChildren = T.concat $ map processLine contents
+processLine (Text (CData _ t _)) = T.pack t
+processLine _ = T.empty
