@@ -79,6 +79,7 @@ test-suite subnsnub-test
   main-is: Spec.hs
   other-modules:
       SilenceDetectSpec
+      SubtitleSpec
       XmlExtractSpec
       Paths_subnsnub
   hs-source-dirs:
