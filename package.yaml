@@ -59,6 +59,15 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - subnsnub
+  subnsnub-html:
+    main:                Main.hs
+    source-dirs:         app-html
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - subnsnub
 
 tests:
   subnsnub-test:

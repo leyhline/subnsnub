@@ -21,8 +21,8 @@ ffmpegOutput = "\
 
 spec :: Spec
 spec = do
-  describe "detectSilence" $ do
-    it "calls FFmpeg and parses abridged test string for silence intervals" $ do
+  describe "parseSilences" $ do
+    it "parses FFmpeg output of silencedetect filter for silence intervals" $ do
       let
         intervals = parseSilences ffmpegOutput
         si1 = SilenceInterval 8.32113 9.51601
