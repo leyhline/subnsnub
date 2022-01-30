@@ -96,12 +96,14 @@ captionsToXml cs = "<!DOCTYPE html>\n" `T.append` T.pack (ppElement eHtml)
   where
     (spanElems, intervals) = unzip $ mapMaybe toSpanElement cs
     eHtml = node (unqual "html") ([Attr (unqual "lang") "ja"], [eHead, eBody])
-    eHead = node (unqual "head") [eMetaCharset, eMeta, eStyle, script]
+    eHead = node (unqual "head") [eMetaCharset, eMeta, eStyle, eScript]
     eMetaCharset = node (unqual "meta") [Attr (unqual "charset") "utf-8"]
     eMeta = node (unqual "meta") [Attr (unqual "name") "viewport", Attr (unqual "content") "width=device-width,initial-scale=1.0"]
     eStyle = node (unqual "style") (CData CDataText css Nothing)
-    script = node (unqual "script") (CData CDataText ("var intervals = " ++ show intervals) Nothing)
-    eBody = node (unqual "body") (foldr spanToPs [] spanElems)
+    eScript = node (unqual "script") (CData CDataRaw
+      (js ++ "\nvar gIntervals = " ++ show (map (\(x,y) -> [x,y]) intervals) ++ ";\nwindow.onload = main;") Nothing)
+    eBody = node (unqual "body") (eAudioSrc : foldr spanToPs [] spanElems)
+    eAudioSrc = node (unqual "audio") ([Attr (unqual "id") audioSourceId, Attr (unqual "src") "subnsnub.ogg"], ""::String) -- TODO: .ogg needs to be variable
     spanToPs :: Element -> [Element] -> [Element]
     spanToPs eSpan [] = [node (unqual "p") (classAttrFromElemText eSpan, eSpan)]
     spanToPs eSpan (Element {
@@ -111,20 +113,51 @@ captionsToXml cs = "<!DOCTYPE html>\n" `T.append` T.pack (ppElement eHtml)
     spanToPs eSpan ps = node (unqual "p") (classAttrFromElemText eSpan, eSpan) : ps
     classAttrFromElemText :: Element -> [Attr]
     classAttrFromElemText e = maybe [] (\c -> if c == '「' then [aClsDlg] else [aClsNrr]) (maybeHead (strContent e))
-    aClsNrr = Attr (unqual "class") "nrr"
-    aClsDlg = Attr (unqual "class") "dlg"
+    aClsNrr = Attr (unqual "class") narrationClassVal
+    aClsDlg = Attr (unqual "class") dialogueClassVal
 
 toSpanElement :: Caption -> Maybe (Element, (Double, Double))
 toSpanElement (Caption _ a da t) = if t == ""
   then Nothing
   else Just (node (unqual "span") ([aClsAud], parseXML t), (timeToSeconds a, timeToSeconds da))
-    where aClsAud = Attr (unqual "class") "aud"
+    where aClsAud = Attr (unqual "class") audibleClassVal
 
-css :: String
-css = "\
-\.nrr { padding-left: 1em; } \
-\.aud:hover { background-color: lavender; }"
+audibleClassVal :: String
+audibleClassVal = "aud"
+narrationClassVal :: String
+narrationClassVal = "nrr"
+dialogueClassVal :: String
+dialogueClassVal = "dlg"
+audioSourceId :: String
+audioSourceId = "audsrc"
 
 maybeHead :: [a] -> Maybe a
 maybeHead [] = Nothing
 maybeHead (x:_) = Just x
+
+css :: String
+css = "\
+\." ++ narrationClassVal ++ "{ padding-left: 1em; } \
+\." ++ audibleClassVal ++ ":hover { background-color: lavender; cursor: pointer; }"
+
+js :: String
+js = "\
+\var gAudioStopTime = 0;\n\
+\function main() {\n\
+\  const audioElem = document.getElementById('" ++ audioSourceId ++ "');\n\
+\  const spans = document.getElementsByClassName('" ++ audibleClassVal ++ "');\n\
+\  console.assert(spans.length == gIntervals.length, 'number of span.aud elements must match length of intervals array');\n\
+\  audioElem.addEventListener('timeupdate', (ev) => {\n\
+\    if (audioElem.currentTime > gAudioStopTime) audioElem.pause();\n\
+\  });\n\
+\  for (let i = 0; i < spans.length; i++) {\n\
+\    addAudioPlayOnClick(spans[i], audioElem, gIntervals[i][0], gIntervals[i][1]);\n\
+\  }\n\
+\}\n\
+\function addAudioPlayOnClick(spanElem, audioElem, start, stop) {\n\
+\  spanElem.addEventListener('click', (mouseEv) => {\n\
+\    gAudioStopTime = stop;\n\
+\    audioElem.currentTime = start;\n\
+\    audioElem.play();\n\
+\  })\n\
+\}"
