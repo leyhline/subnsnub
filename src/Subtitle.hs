@@ -106,10 +106,13 @@ captionsToXml cs = "<!DOCTYPE html>\n" `T.append` T.pack (ppElement eHtml)
     eAudioSrc = node (unqual "audio") ([Attr (unqual "id") audioSourceId, Attr (unqual "src") "subnsnub.ogg"], ""::String) -- TODO: .ogg needs to be variable
     spanToPs :: Element -> [Element] -> [Element]
     spanToPs eSpan [] = [node (unqual "p") (classAttrFromElemText eSpan, eSpan)]
-    spanToPs eSpan (Element {
-      elName = QName { qName = "p" },
-      elContent = (Elem (Element QName { qName = "span" } attrs (Text (CData a ('_':b) c):scs) _
-      ):spans) }:ps) = node (unqual "p") (classAttrFromElemText eSpan, Elem eSpan : Elem (node (unqual "span") (attrs,Text (CData a b c):scs)) : spans) : ps
+    spanToPs eSpan (p@Element
+      { elName = QName { qName = "p" }
+      , elContent = (Elem eSpan'@(Element QName { qName = "span" } _ ((Text cdata@(CData _ ('_':b) _)):scs) _):spans)
+      } : ps) = p
+        { elContent = Elem eSpan : Elem (eSpan' { elContent = Text cdata { cdData = b } : scs }) : spans
+        , elAttribs = classAttrFromElemText eSpan
+        } : ps
     spanToPs eSpan ps = node (unqual "p") (classAttrFromElemText eSpan, eSpan) : ps
     classAttrFromElemText :: Element -> [Attr]
     classAttrFromElemText e = maybe [] (\c -> if c == '「' then [aClsDlg] else [aClsNrr]) (maybeHead (strContent e))
@@ -146,7 +149,7 @@ js = "\
 \function main() {\n\
 \  const audioElem = document.getElementById('" ++ audioSourceId ++ "');\n\
 \  const spans = document.getElementsByClassName('" ++ audibleClassVal ++ "');\n\
-\  console.assert(spans.length == gIntervals.length, 'number of span.aud elements must match length of intervals array');\n\
+\  console.assert(spans.length == gIntervals.length, 'number of span.aud elements need to match length of intervals array');\n\
 \  audioElem.addEventListener('timeupdate', (ev) => {\n\
 \    if (audioElem.currentTime > gAudioStopTime) audioElem.pause();\n\
 \  });\n\
