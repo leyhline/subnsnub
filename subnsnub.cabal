@@ -28,6 +28,7 @@ library
   exposed-modules:
       SilenceDetect
       Subtitle
+      SubtitleMarkup
       XmlExtract
   other-modules:
       Paths_subnsnub

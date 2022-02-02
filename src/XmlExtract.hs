@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 {-
 subnsnub - helps to create subtitles from and for audiobooks
 Copyright (C) 2022  Thomas Leyh <thomas.leyh@mailbox.org>
@@ -25,44 +27,44 @@ tags (i.e. <b />, <i />, <u />, <ruby />, <rt />) are expected output.
 -}
 module XmlExtract
   ( extractParagraphs
-  , Paragraph
   ) where
 
+import SubtitleMarkup
 import Data.List (find)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Text.XML.Light
 
-type Paragraph = [Content]
-
-extractParagraphs :: Text -> [Paragraph]
+extractParagraphs :: Text -> [SubtitleMarkup]
 extractParagraphs = maybe [] processHtml . find html . onlyElems . parseXML
   where html (Element (QName "html" _ _) _ _ _) = True
         html _ = False
 
-processHtml :: Element -> [Paragraph]
+processHtml :: Element -> [SubtitleMarkup]
 processHtml = maybe [] processDivs . filterElement isDivMain
   where isDivMain (Element (QName "div" _ _) attrs _ _) = lookupAttr (unqual "class") attrs == Just "main"
         isDivMain _ = False
 
-processDivs :: Element -> [Paragraph]
+processDivs :: Element -> [SubtitleMarkup]
 processDivs topE = map processP paragraphs
   where
     paragraphs = filterChildrenName isP topE
     isP (QName "p" _ _) = True
     isP _ = False
 
-processP :: Element -> Paragraph
+processP :: Element -> SubtitleMarkup
 processP (Element _ _ contents _) =
   let paragraph = concatMap processContent contents
-  in if null paragraph then contents else paragraph
+      verbatim = [SubText $ T.pack $ concatMap showContent contents]
+  in if null paragraph then verbatim else paragraph
 
-processContent :: Content -> Paragraph
-processContent (Elem (Element (QName name _ _) _ contents _))
-  | name `elem` preserveTags = [Elem $ node (unqual name) processChildren]
-  | name `elem` discardTags  = processChildren
-  | otherwise                = []
-  where preserveTags = ["ruby", "rt", "u", "b", "i"]
-        discardTags  = ["span"]
-        processChildren = concatMap processContent contents
-processContent (Text cdata) = [Text cdata { cdLine = Nothing }]
-processContent _ = []
+processContent :: Content -> SubtitleMarkup
+processContent = \case
+  (Elem (Element (QName "b" _ _) _ contents _)) -> [SubBold $ concatMap processContent contents]
+  (Elem (Element (QName "i" _ _) _ contents _)) -> [SubItalic $ concatMap processContent contents]
+  (Elem (Element (QName "u" _ _) _ contents _)) -> [SubUnderline $ concatMap processContent contents]
+  (Elem (Element (QName "ruby" _ _) _ contents _)) -> [SubRuby $ concatMap processContent contents]
+  (Elem (Element (QName "rt" _ _) _ contents _)) -> [SubRt $ concatMap processContent contents]
+  (Elem (Element (QName "span" _ _) _ contents _)) -> concatMap processContent contents
+  (Text CData { cdData = text }) -> [SubText $ T.pack text]
+  _ -> []
