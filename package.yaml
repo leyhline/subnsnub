@@ -10,7 +10,7 @@ extra-source-files:
 - README.md
 
 # Metadata used when publishing your package
-synopsis:            helps a person to create subtitles for audio books
+synopsis:            helps to create subtitles from and for audiobooks
 category:            Media
 
 # To avoid duplicated efforts in documentation and dealing with the
@@ -41,27 +41,9 @@ library:
   - xml
 
 executables:
-  subnsnub-paragraph:
+  subnsnub:
     main:                Main.hs
-    source-dirs:         app-paragraph
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - subnsnub
-  subnsnub-silence:
-    main:                Main.hs
-    source-dirs:         app-silence
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - subnsnub
-  subnsnub-html:
-    main:                Main.hs
-    source-dirs:         app-html
+    source-dirs:         app
     ghc-options:
     - -threaded
     - -rtsopts
@@ -80,3 +62,4 @@ tests:
     dependencies:
     - subnsnub
     - hspec
+    - xml

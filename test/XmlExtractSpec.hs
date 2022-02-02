@@ -3,7 +3,8 @@ module XmlExtractSpec
   ) where
 
 import XmlExtract
-import Data.Text
+import Data.Text (Text)
+import Text.XML.Light
 import Test.Hspec
 
 xmlInput :: Text
@@ -31,4 +32,5 @@ spec = do
         p2 = "「<ruby>佐<rt>さ</rt>藤<rt>とう</rt>和<rt>かず</rt>真<rt>ま</rt></ruby>さん、ようこそ死後の世界へ。あなたはつい先ほど、不幸にも<ruby>亡<rt>な</rt></ruby>くなりました。短い人生でしたが、あなたの生は終わってしまったのです」"
         p3 = "　真っ白な部屋の中、俺は<ruby>唐<rt>とう</rt>突<rt>とつ</rt></ruby>にそんな事を告げられた。"
         expected = [p1, p2, p3]
-      in extractParagraphs xmlInput `shouldBe` expected
+        extracted = map (concatMap showContent) (extractParagraphs xmlInput)
+      in extracted `shouldBe` expected

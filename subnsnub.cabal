@@ -6,7 +6,7 @@ cabal-version: 2.2
 
 name:           subnsnub
 version:        0.1.0.0
-synopsis:       helps a person to create subtitles for audio books
+synopsis:       helps to create subtitles from and for audiobooks
 description:    Please see the README on GitHub at <https://github.com/leyhline/subnsnub#readme>
 category:       Media
 homepage:       https://github.com/leyhline/subnsnub#readme
@@ -44,42 +44,12 @@ library
     , xml
   default-language: Haskell2010
 
-executable subnsnub-html
+executable subnsnub
   main-is: Main.hs
   other-modules:
       Paths_subnsnub
   hs-source-dirs:
-      app-html
-  default-extensions:
-      OverloadedStrings
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      base >=4.7 && <5
-    , subnsnub
-    , text
-  default-language: Haskell2010
-
-executable subnsnub-paragraph
-  main-is: Main.hs
-  other-modules:
-      Paths_subnsnub
-  hs-source-dirs:
-      app-paragraph
-  default-extensions:
-      OverloadedStrings
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      base >=4.7 && <5
-    , subnsnub
-    , text
-  default-language: Haskell2010
-
-executable subnsnub-silence
-  main-is: Main.hs
-  other-modules:
-      Paths_subnsnub
-  hs-source-dirs:
-      app-silence
+      app
   default-extensions:
       OverloadedStrings
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
@@ -107,4 +77,5 @@ test-suite subnsnub-test
     , hspec
     , subnsnub
     , text
+    , xml
   default-language: Haskell2010
