@@ -29,10 +29,14 @@ module SubtitleMarkup
   ( SubtitleMarkup
   , SubtitleContent(..)
   , showSubtitleMarkup
+  , readSubtitleMarkup
+  , xmlToSubtitleMarkup
+  , subtitleMarkupToXml
   ) where
 
 import Data.Text (Text)
 import qualified Data.Text as T
+import Text.XML.Light
 
 type SubtitleMarkup = [SubtitleContent]
 
@@ -55,3 +59,29 @@ showSubtitleContent = \case
   SubUnderline markup -> T.concat ["<u>", showSubtitleMarkup markup, "</u>"]
   SubRuby markup -> T.concat ["<ruby>", showSubtitleMarkup markup, "</ruby>"]
   SubRt markup -> T.concat ["<rt>", showSubtitleMarkup markup, "</rt>"]
+
+readSubtitleMarkup :: Text -> SubtitleMarkup
+readSubtitleMarkup = concatMap xmlToSubtitleMarkup . parseXML
+
+xmlToSubtitleMarkup :: Content -> SubtitleMarkup
+xmlToSubtitleMarkup = \case
+  (Elem (Element (QName "b" _ _) _ contents _)) -> [SubBold $ concatMap xmlToSubtitleMarkup contents]
+  (Elem (Element (QName "i" _ _) _ contents _)) -> [SubItalic $ concatMap xmlToSubtitleMarkup contents]
+  (Elem (Element (QName "u" _ _) _ contents _)) -> [SubUnderline $ concatMap xmlToSubtitleMarkup contents]
+  (Elem (Element (QName "ruby" _ _) _ contents _)) -> [SubRuby $ concatMap xmlToSubtitleMarkup contents]
+  (Elem (Element (QName "rt" _ _) _ contents _)) -> [SubRt $ concatMap xmlToSubtitleMarkup contents]
+  (Elem (Element (QName "span" _ _) _ contents _)) -> concatMap xmlToSubtitleMarkup contents
+  (Text CData { cdData = text }) -> [SubText $ T.pack text]
+  _ -> []
+
+subtitleMarkupToXml :: SubtitleMarkup -> [Content]
+subtitleMarkupToXml = map subtitleContentToXml
+
+subtitleContentToXml :: SubtitleContent -> Content
+subtitleContentToXml = \case
+  SubText text -> Text $ CData CDataText (T.unpack text) Nothing
+  SubBold markup -> Elem $ node (unqual "b") (subtitleMarkupToXml markup)
+  SubItalic markup -> Elem $ node (unqual "i") (subtitleMarkupToXml markup)
+  SubUnderline markup -> Elem $ node (unqual "u") (subtitleMarkupToXml markup)
+  SubRuby markup -> Elem $ node (unqual "ruby") (subtitleMarkupToXml markup)
+  SubRt markup -> Elem $ node (unqual "rt") (subtitleMarkupToXml markup)

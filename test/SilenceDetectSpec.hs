@@ -24,7 +24,7 @@ spec = do
   describe "parseSilences" $ do
     it "parses FFmpeg output of silencedetect filter for silence intervals" $ do
       let
-        intervals = parseSilences ffmpegOutput
+        intervals = parseSilence ffmpegOutput
         si1 = SilenceInterval 8.32113 9.51601
         si2 = SilenceInterval 11.4657 12.529
         si3 = SilenceInterval 15.2015 18.4216

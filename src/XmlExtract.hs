@@ -1,5 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
-
 {-
 subnsnub - helps to create subtitles from and for audiobooks
 Copyright (C) 2022  Thomas Leyh <thomas.leyh@mailbox.org>
@@ -54,17 +52,6 @@ processDivs topE = map processP paragraphs
 
 processP :: Element -> SubtitleMarkup
 processP (Element _ _ contents _) =
-  let paragraph = concatMap processContent contents
+  let paragraph = concatMap xmlToSubtitleMarkup contents
       verbatim = [SubText $ T.pack $ concatMap showContent contents]
   in if null paragraph then verbatim else paragraph
-
-processContent :: Content -> SubtitleMarkup
-processContent = \case
-  (Elem (Element (QName "b" _ _) _ contents _)) -> [SubBold $ concatMap processContent contents]
-  (Elem (Element (QName "i" _ _) _ contents _)) -> [SubItalic $ concatMap processContent contents]
-  (Elem (Element (QName "u" _ _) _ contents _)) -> [SubUnderline $ concatMap processContent contents]
-  (Elem (Element (QName "ruby" _ _) _ contents _)) -> [SubRuby $ concatMap processContent contents]
-  (Elem (Element (QName "rt" _ _) _ contents _)) -> [SubRt $ concatMap processContent contents]
-  (Elem (Element (QName "span" _ _) _ contents _)) -> concatMap processContent contents
-  (Text CData { cdData = text }) -> [SubText $ T.pack text]
-  _ -> []

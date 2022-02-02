@@ -27,8 +27,8 @@ source-repository head
 library
   exposed-modules:
       SilenceDetect
-      Subtitle
       SubtitleMarkup
+      Subtitles
       XmlExtract
   other-modules:
       Paths_subnsnub
@@ -65,7 +65,7 @@ test-suite subnsnub-test
   main-is: Spec.hs
   other-modules:
       SilenceDetectSpec
-      SubtitleSpec
+      SubtitlesSpec
       XmlExtractSpec
       Paths_subnsnub
   hs-source-dirs:

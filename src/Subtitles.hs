@@ -1,13 +1,40 @@
-module Subtitle
+{-
+subnsnub - helps to create subtitles from and for audiobooks
+Copyright (C) 2022  Thomas Leyh <thomas.leyh@mailbox.org>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-}
+
+{-|
+Module      : Subtitles
+Description : Creation and conversion of subtitle data.
+
+Subtitle datatype and conversion to SRT, VTT and basic HTML with
+audio support.
+-}
+
+module Subtitles
   ( secondsToTime
   , srtSubtitles
   , vttSubtitles
   , readSrt
-  , captionsToXml
-  , Caption(..)
+  , subtitlesToXml
+  , Subtitle(..)
   , Time(..)
   ) where
 
+import SubtitleMarkup
 import Control.Applicative
 import Control.Exception
 import Text.Printf
@@ -18,16 +45,16 @@ import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Text.XML.Light
 
-data SubtitleException = ParserException String
+newtype SubtitleException = ParserException String
   deriving (Show, Eq)
 
 instance Exception SubtitleException
 
-data Caption = Caption
+data Subtitle = Subtitle
   { counter   :: Integer
   , appear    :: Time
   , disappear :: Time
-  , text      :: Text
+  , markup    :: SubtitleMarkup
   }
   deriving (Eq, Show)
 
@@ -46,24 +73,24 @@ secondsToTime d = Time h m s ms
     ms = round (1000 * d) `mod` 1000
 
 timeToSeconds :: Time -> Double
-timeToSeconds (Time h m s ms) = (fromIntegral h) * 3600.0 + (fromIntegral m) * 60 + (fromIntegral s) + (fromIntegral ms) / 1000
+timeToSeconds (Time h m s ms) = fromIntegral h * 3600.0 + fromIntegral m * 60 + fromIntegral s + fromIntegral ms / 1000
 
-srtSubtitles :: [Caption] -> Text
-srtSubtitles = T.intercalate "\n\n" . map (showCaption ',')
+srtSubtitles :: [Subtitle] -> Text
+srtSubtitles = T.intercalate "\n\n" . map (showSubtitle ',')
 
-vttSubtitles :: [Caption] -> Text
-vttSubtitles = T.append header . T.intercalate "\n\n" . map (showCaption '.')
+vttSubtitles :: [Subtitle] -> Text
+vttSubtitles = T.append header . T.intercalate "\n\n" . map (showSubtitle '.')
   where header = "WEBVTT\n\n"
 
-showCaption :: Char -> Caption -> Text
-showCaption mssep (Caption c a da t) = T.concat [T.pack $ show c, "\n", toText a, " --> ", toText da, "\n", t]
+showSubtitle :: Char -> Subtitle -> Text
+showSubtitle mssep (Subtitle c a da cs) = T.concat [T.pack $ show c, "\n", toText a, " --> ", toText da, "\n", showSubtitleMarkup cs]
   where toText = showTime mssep
 
-readSrt :: Text -> [Caption]
-readSrt input = either (throw . ParserException) id (parseOnly (many' captionParser) input)
+readSrt :: Text -> [Subtitle]
+readSrt input = either (throw . ParserException) id (parseOnly (many' subtitleParser) input)
 
-captionParser :: Parser Caption
-captionParser = do
+subtitleParser :: Parser Subtitle
+subtitleParser = do
   skipWhile (not . isDigit)
   i <- decimal
   endOfLine
@@ -71,8 +98,8 @@ captionParser = do
   skipArrow
   da <- time
   endOfLine
-  ts <- many' textLine
-  return $ Caption i a da (T.concat ts)
+  mtext <- many' textLine
+  return $ Subtitle i a da (readSubtitleMarkup $ T.concat mtext)
   where
     time :: Parser Time
     time = do
@@ -91,8 +118,8 @@ captionParser = do
       endOfInput <|> endOfLine
       return t
 
-captionsToXml :: [Caption] -> Text
-captionsToXml cs = "<!DOCTYPE html>\n" `T.append` T.pack (ppElement eHtml)
+subtitlesToXml :: [Subtitle] -> Text
+subtitlesToXml cs = "<!DOCTYPE html>\n" `T.append` T.pack (ppElement eHtml)
   where
     (spanElems, intervals) = unzip $ mapMaybe toSpanElement cs
     eHtml = node (unqual "html") ([Attr (unqual "lang") "ja"], [eHead, eBody])
@@ -119,10 +146,10 @@ captionsToXml cs = "<!DOCTYPE html>\n" `T.append` T.pack (ppElement eHtml)
     aClsNrr = Attr (unqual "class") narrationClassVal
     aClsDlg = Attr (unqual "class") dialogueClassVal
 
-toSpanElement :: Caption -> Maybe (Element, (Double, Double))
-toSpanElement (Caption _ a da t) = if t == ""
+toSpanElement :: Subtitle -> Maybe (Element, (Double, Double))
+toSpanElement (Subtitle _ a da cs) = if null cs
   then Nothing
-  else Just (node (unqual "span") ([aClsAud], parseXML t), (timeToSeconds a, timeToSeconds da))
+  else Just (node (unqual "span") ([aClsAud], subtitleMarkupToXml cs), (timeToSeconds a, timeToSeconds da))
     where aClsAud = Attr (unqual "class") audibleClassVal
 
 audibleClassVal :: String
