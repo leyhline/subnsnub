@@ -56,6 +56,7 @@ executable subnsnub
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , optparse-applicative
     , subnsnub
     , text
   default-language: Haskell2010
