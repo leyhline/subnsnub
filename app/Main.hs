@@ -68,7 +68,7 @@ main = execCommand =<< execParser opts
       SubToHtml  o -> subToHtml  o
 
 commandParser :: Parser Command
-commandParser = subparser
+commandParser = hsubparser
   (  command "xmlextract" (info
     (XmlExtract <$> xmlExtractOptions)
     (progDesc "Extracts paragraphs from ebook XML and outputs them by line"))
