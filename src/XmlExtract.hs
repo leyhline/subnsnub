@@ -39,16 +39,10 @@ extractParagraphs = maybe [] processHtml . find html . onlyElems . parseXML
         html _ = False
 
 processHtml :: Element -> [SubtitleMarkup]
-processHtml = maybe [] processDivs . filterElement isDivMain
-  where isDivMain (Element (QName "div" _ _) attrs _ _) = lookupAttr (unqual "class") attrs == Just "main"
-        isDivMain _ = False
+processHtml = map processP . findPs
 
-processDivs :: Element -> [SubtitleMarkup]
-processDivs topE = map processP paragraphs
-  where
-    paragraphs = filterChildrenName isP topE
-    isP (QName "p" _ _) = True
-    isP _ = False
+findPs :: Element -> [Element]
+findPs = filterElementsName (\(QName name _ _) -> name == "p")
 
 processP :: Element -> SubtitleMarkup
 processP (Element _ _ contents _) =
