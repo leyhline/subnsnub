@@ -47,6 +47,7 @@ data XmlExtractOptions = XmlExtractOptions
 data AudioToSubOptions = AudioToSubOptions
   { audioInputFile  :: FilePath
   , subOutputFile   :: Maybe FilePath
+  , noiseTolerance  :: Integer
   , silenceDuration :: Double
   }
 
@@ -104,6 +105,12 @@ audioToSubOptions = AudioToSubOptions
     <> metavar "FILE"
     <> help "SRT file destination path (default: stdout)" ))
   <*> option auto
+    (  long "noise"
+    <> short 'n'
+    <> metavar "INT"
+    <> value (-60)
+    <> help "Noise tolerance (default: -60dB)")
+  <*> option auto
     (  long "duration"
     <> short 'd'
     <> metavar "FLOAT"
@@ -111,8 +118,8 @@ audioToSubOptions = AudioToSubOptions
     <> help "Minimal duration of silence between subtitles; gets passed to FFmpeg (default: 0.6)")
 
 audioToSub :: AudioToSubOptions -> IO ()
-audioToSub (AudioToSubOptions input output duration) = do
-  intervals <- detectSilence duration input
+audioToSub (AudioToSubOptions input output noise duration) = do
+  intervals <- detectSilence noise duration input
   let subtitles = intervalsToSubtitles duration intervals
       srt = srtSubtitles subtitles
   maybe (TIO.putStrLn srt) (`writeToFile` srt) output
