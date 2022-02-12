@@ -8,3 +8,7 @@ test:
 .PHONY: build
 build:
 	stack build --fast
+
+.PHONY: clean
+clean:
+	stack clean

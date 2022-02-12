@@ -104,11 +104,11 @@ subtitleParser = do
     time :: Parser Time
     time = do
       h <- decimal
-      char ':'
+      _ <- char ':'
       m <- decimal
-      char ':'
+      _ <- char ':'
       s <- decimal
-      char ','
+      _ <- char ','
       Time h m s <$> decimal
     skipArrow :: Parser ()
     skipArrow = char ' ' >> skip ('-' ==) >> skip ('-' ==) >> skip ('>' ==) >> char ' ' >> return ()

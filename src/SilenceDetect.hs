@@ -64,13 +64,13 @@ silenceParser = many' intervalParser
     intervalParser :: Parser SilenceInterval
     intervalParser = do
       skipHeader
-      string "silence_start: "
+      _ <- string "silence_start: "
       startTime <- double
       skipHeader
-      string "silence_end: "
+      _ <- string "silence_end: "
       SilenceInterval startTime <$> double
     skipHeader :: Parser ()
     skipHeader = do
-      manyTill (skipWhile ('[' /=) >> anyChar) (string "silencedetect")
-      skipWhile (']' /=) >> anyChar
+      _ <- manyTill (skipWhile ('[' /=) >> anyChar) (string "silencedetect")
+      _ <- skipWhile (']' /=) >> anyChar
       skipSpace

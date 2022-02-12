@@ -25,10 +25,6 @@ dependencies:
 ghc-options:
 - -Wall
 - -Wcompat
-- -Wincomplete-record-updates
-- -Wincomplete-uni-patterns
-- -Wredundant-constraints
-- -Wno-unused-do-bind
 
 default-extensions:
 - OverloadedStrings
