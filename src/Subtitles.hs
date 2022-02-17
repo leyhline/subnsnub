@@ -32,6 +32,8 @@ module Subtitles
   , subtitlesToXml
   , Subtitle(..)
   , Time(..)
+  , showTime
+  , showTimeUnits
   ) where
 
 import SubtitleMarkup
@@ -64,6 +66,9 @@ data Time = Time Integer Integer Integer Integer
 
 showTime :: Char -> Time -> Text
 showTime mssep (Time h m s ms) = T.pack $ printf ("%02d:%02d:%02d" ++ mssep:"%03d") h m s ms
+
+showTimeUnits :: Time -> Text
+showTimeUnits (Time h m s ms) = T.pack $ printf ("%02dh%02dm%02ds%03dms") h m s ms
 
 secondsToTime :: Double -> Time
 secondsToTime d = Time h m s ms

@@ -32,6 +32,7 @@ module SubtitleMarkup
   , readSubtitleMarkup
   , xmlToSubtitleMarkup
   , subtitleMarkupToXml
+  , subtitleMarkupToAnki
   ) where
 
 import Data.Text (Text)
@@ -85,3 +86,15 @@ subtitleContentToXml = \case
   SubUnderline markup -> Elem $ node (unqual "u") (subtitleMarkupToXml markup)
   SubRuby markup -> Elem $ node (unqual "ruby") (subtitleMarkupToXml markup)
   SubRt markup -> Elem $ node (unqual "rt") (subtitleMarkupToXml markup)
+
+subtitleMarkupToAnki :: SubtitleMarkup -> Text
+subtitleMarkupToAnki = T.concat . map subtitleContentToAnki
+
+subtitleContentToAnki :: SubtitleContent -> Text
+subtitleContentToAnki = \case
+  SubText text -> text
+  SubBold markup -> showSubtitleMarkup markup
+  SubItalic markup -> showSubtitleMarkup markup
+  SubUnderline markup -> showSubtitleMarkup markup
+  SubRuby markup -> showSubtitleMarkup markup
+  SubRt markup -> T.concat ["[", showSubtitleMarkup markup, "] "]

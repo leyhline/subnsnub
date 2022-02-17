@@ -32,8 +32,12 @@ default-extensions:
 library:
   source-dirs: src
   dependencies:
+  - aeson
   - attoparsec
+  - filepath
   - process
+  - req
+  - temporary
   - xml
 
 executables:
