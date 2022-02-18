@@ -23,6 +23,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Options.Applicative
+import AnkiConnect
 import Subtitles
 import SubtitleMarkup
 import XmlExtract
@@ -38,6 +39,7 @@ data Command
  = XmlExtract XmlExtractOptions
  | AudioToSub AudioToSubOptions
  | SubToHtml  SubToHtmlOptions
+ | ToAnki     ToAnkiOptions
 
 data XmlExtractOptions = XmlExtractOptions
   { xmlInputFile  :: FilePath
@@ -56,6 +58,11 @@ data SubToHtmlOptions  = SubToHtmlOptions
   , htmlOutputFile :: Maybe FilePath
   }
 
+data ToAnkiOptions = ToAnkiOptions
+  { ankiSubInputFile   :: FilePath
+  , ankiAudioInputFile :: FilePath
+  }
+
 main :: IO ()
 main = execCommand =<< execParser opts
   where
@@ -67,6 +74,7 @@ main = execCommand =<< execParser opts
       XmlExtract o -> xmlExtract o
       AudioToSub o -> audioToSub o
       SubToHtml  o -> subToHtml  o
+      ToAnki     o -> toAnki o
 
 commandParser :: Parser Command
 commandParser = hsubparser
@@ -78,7 +86,10 @@ commandParser = hsubparser
     (progDesc "Call FFmpeg to detect silence intervals and create subtitle template"))
   <>  command "sub2html"  (info
     (SubToHtml  <$> subToHtmlOptions)
-    (progDesc "Convert a subtitle SRT file to a HTML page with audio support")))
+    (progDesc "Convert a subtitle SRT file to a HTML page with audio support"))
+  <>  command "send2anki"    (info
+    (ToAnki     <$> toAnkiOptions)
+    (progDesc "Creates Anki flash cards from subtitle fragments with audio (requires anki-connect)")))
 
 subToHtmlOptions :: Parser SubToHtmlOptions
 subToHtmlOptions = SubToHtmlOptions
@@ -146,6 +157,18 @@ xmlExtract (XmlExtractOptions input output) =
     let ps = extractParagraphs contents
         txt = T.intercalate "\n\n" (map showSubtitleMarkup ps)
     maybe (TIO.putStrLn txt) (`writeToFile` txt) output)
+
+toAnkiOptions :: Parser ToAnkiOptions
+toAnkiOptions = ToAnkiOptions
+  <$> strArgument (metavar "FILE")
+  <*> strArgument (metavar "FILE")
+
+toAnki :: ToAnkiOptions -> IO ()
+toAnki (ToAnkiOptions subsFile audioFile) =
+  withFile subsFile ReadMode (\hdl -> do
+    contents <- TIO.hGetContents hdl
+    let subs = readSrt contents
+    subtitlesToAnki subs audioFile)
 
 writeToFile :: FilePath -> Text -> IO ()
 writeToFile path t = withFile path WriteMode (`TIO.hPutStr` t)

@@ -32,6 +32,8 @@ module AnkiConnect
   ) where
 
 import Data.Aeson
+import Data.Char
+import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics
@@ -59,7 +61,7 @@ data Params
   deriving (Generic, Show)
 
 instance ToJSON Params where
-  toEncoding = genericToEncoding defaultOptions
+  toEncoding = genericToEncoding defaultOptions { sumEncoding = UntaggedValue }
 
 data Note = Note
   { deckName :: Text
@@ -73,7 +75,7 @@ data Note = Note
   } deriving (Generic, Show)
 
 instance ToJSON Note where
-  toEncoding = genericToEncoding defaultOptions
+  toEncoding = genericToEncoding defaultOptions { omitNothingFields = True }
 
 data Fields = Fields
   { sentKanji :: Text
@@ -109,7 +111,7 @@ data Media = Media
   } deriving (Generic, Show)
 
 instance ToJSON Media where
-  toEncoding = genericToEncoding defaultOptions
+  toEncoding = genericToEncoding defaultOptions { omitNothingFields = True }
 
 data AddNoteResult = AddNoteResult
   { result :: Integer
@@ -123,20 +125,16 @@ data AddNotesResult = AddNotesResult
 
 subtitlesToAnki :: [Subtitle] -> FilePath -> IO ()
 subtitlesToAnki subs audioSrc = do
-  tuples <- withSystemTempDirectory "subnsnub" f
-  let addNotes = uncurry mkAddNotesAction $ unzip tuples
-  sendAction addNotes
+  withSystemTempDirectory "subnsnub" f
   where
-    f :: FilePath -> IO [(SubtitleMarkup, FilePath)]
-    f tempdir = mapM
+    f :: FilePath -> IO ()
+    f tempdir = sendAction . uncurry mkAddNotesAction . unzip =<< mapM
       (\(Subtitle _ start stop sub) -> do
         let audioDstName = srcToDstName start stop audioSrc
             audioDstDir  = tempdir </> audioDstName
         createAudio start stop audioSrc audioDstDir
         return (sub, audioDstDir)
       ) subs
-    -- create storeMedia action
-    -- create addNotes action
 
 sendAction :: Action -> IO ()
 sendAction ac = runReq defaultHttpConfig $ do
@@ -145,10 +143,18 @@ sendAction ac = runReq defaultHttpConfig $ do
   return ()
 
 srcToDstName :: Time -> Time -> FilePath -> FilePath
-srcToDstName start stop src = concat [baseName, "_", T.unpack $ showTimeUnits start, "-", T.unpack $ showTimeUnits stop] <.> extension
-  where
-    baseName = takeBaseName src
-    extension = takeExtension src
+srcToDstName start stop src = concat
+  [ cleanBaseName $ takeBaseName src, "_"
+  , T.unpack $ showTimeUnits start, "-"
+  , T.unpack $ showTimeUnits stop
+  ] <.> "ogg"
+
+cleanBaseName :: String -> String
+cleanBaseName = mapMaybe f
+  where f c
+          | isSpace c = Just '_'
+          | isAlphaNum c = Just c
+          | otherwise = Nothing
 
 mkAddNoteAction :: SubtitleMarkup -> FilePath -> Action
 mkAddNoteAction sub audioPath =
@@ -164,12 +170,16 @@ mkNote sub audioPath = Note
   "Japanese sentences"
   (Fields
     (subtitleMarkupToAnki sub)
-    "subnsnub")
+    (T.pack $ concat [title, " (", startTime, ")"]))
   Nothing
-  ["subnsnub"]
+  [T.pack title, "subnsnub"]
   [Media audioPath (takeFileName audioPath) Nothing ["SentAudio"]]
   []
   []
+  where
+    (r1, r2) = break ('_' ==) $ reverse $ takeBaseName audioPath
+    startTime = takeWhile ('-' /=) $ reverse r1
+    title = reverse $ tail r2
 
 createAudio :: Time -> Time -> FilePath -> FilePath -> IO ()
 createAudio start stop src dst = do
