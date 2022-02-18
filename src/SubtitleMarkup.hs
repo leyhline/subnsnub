@@ -41,7 +41,8 @@ import Text.XML.Light
 
 type SubtitleMarkup = [SubtitleContent]
 
-data SubtitleContent = SubText Text
+data SubtitleContent
+  = SubText Text
   | SubBold SubtitleMarkup
   | SubItalic SubtitleMarkup
   | SubUnderline SubtitleMarkup

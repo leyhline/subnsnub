@@ -51,6 +51,7 @@ data AudioToSubOptions = AudioToSubOptions
   , subOutputFile   :: Maybe FilePath
   , noiseTolerance  :: Integer
   , silenceDuration :: Double
+  , subDefault      :: Text
   }
 
 data SubToHtmlOptions  = SubToHtmlOptions
@@ -127,19 +128,25 @@ audioToSubOptions = AudioToSubOptions
     <> metavar "FLOAT"
     <> value 0.6
     <> help "Minimal duration of silence between subtitles; gets passed to FFmpeg (default: 0.6)")
+  <*>  strOption
+    (  long "subdefault"
+    <> short 's'
+    <> metavar "STRING"
+    <> value ""
+    <> help "Default text for each subtitle output (default: <blank>)")
 
 audioToSub :: AudioToSubOptions -> IO ()
-audioToSub (AudioToSubOptions input output noise duration) = do
+audioToSub (AudioToSubOptions input output noise duration subdefault) = do
   intervals <- detectSilence noise duration input
-  let subtitles = intervalsToSubtitles duration intervals
+  let subtitles = intervalsToSubtitles duration subdefault intervals
       srt = srtSubtitles subtitles
   maybe (TIO.putStrLn srt) (`writeToFile` srt) output
 
-intervalsToSubtitles :: Double -> [SilenceInterval] -> [Subtitle]
-intervalsToSubtitles d ivls = zipWith3 f [1..] ivls (tail ivls)
+intervalsToSubtitles :: Double -> Text -> [SilenceInterval] -> [Subtitle]
+intervalsToSubtitles d subdefault ivls = zipWith3 f [1..] ivls (tail ivls)
   where
     f i (SilenceInterval _ stop) (SilenceInterval start _) =
-      Subtitle i (secondsToTime $ stop - (d/2)) (secondsToTime $ start + (d/2)) []
+      Subtitle i (secondsToTime $ stop - (d/2)) (secondsToTime $ start + (d/2)) [SubText subdefault]
 
 xmlExtractOptions :: Parser XmlExtractOptions
 xmlExtractOptions = XmlExtractOptions
