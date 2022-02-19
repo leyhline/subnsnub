@@ -34,7 +34,8 @@ import System.IO
 import System.Process
 import System.Exit
 
-data SilenceDetectException = ParserException String
+data SilenceDetectException
+  = ParserException String
   | ProcessException String
   deriving (Show, Eq)
 
@@ -51,8 +52,9 @@ detectSilence n d audioFile = do
     cmdStr = "'ffmpeg " ++ unwords args ++ "'"
   (_, _, Just errHdl, p) <- createProcess cmd
   exitCode <- waitForProcess p
+  err <- hGetContents errHdl
   case exitCode of
-    ExitSuccess -> parseSilence . T.pack <$> hGetContents errHdl
+    ExitSuccess -> return $ parseSilence $ T.pack err
     ExitFailure code -> throw $ ProcessException $ cmdStr ++ " quit with exit code " ++ show code
 
 parseSilence :: Text -> [SilenceInterval]

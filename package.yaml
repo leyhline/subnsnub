@@ -34,6 +34,7 @@ library:
   dependencies:
   - aeson
   - attoparsec
+  - bytestring
   - filepath
   - process
   - req

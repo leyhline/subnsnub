@@ -31,18 +31,31 @@ module AnkiConnect
   , mkAddNotesAction
   ) where
 
+import Control.Exception
+import Control.Monad.IO.Class (liftIO)
 import Data.Aeson
+import qualified Data.ByteString.Char8 as B
 import Data.Char
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import GHC.Generics
 import Network.HTTP.Req
+import System.Exit
 import System.Process
+import System.IO
 import System.IO.Temp
 import System.FilePath
 import Subtitles (Subtitle(..), Time, showTime, showTimeUnits)
 import SubtitleMarkup
+
+data AnkiConnectException
+  = ProcessException String
+  | RequestException String
+  deriving (Show, Eq)
+
+instance Exception AnkiConnectException
 
 data Action = Action
   { action :: Text
@@ -114,14 +127,18 @@ instance ToJSON Media where
   toEncoding = genericToEncoding defaultOptions { omitNothingFields = True }
 
 data AddNoteResult = AddNoteResult
-  { result :: Integer
-  , error :: Text
+  { result :: Maybe Integer
+  , error  :: Maybe Text
   } deriving (Generic, Show)
 
+instance FromJSON AddNoteResult
+
 data AddNotesResult = AddNotesResult
-  { result :: [Integer]
-  , error  :: Text
+  { result :: Maybe [Integer]
+  , error  :: Maybe Text
   } deriving (Generic, Show)
+
+instance FromJSON AddNotesResult
 
 subtitlesToAnki :: [Subtitle] -> FilePath -> IO ()
 subtitlesToAnki subs audioSrc = do
@@ -139,8 +156,10 @@ subtitlesToAnki subs audioSrc = do
 sendAction :: Action -> IO ()
 sendAction ac = runReq defaultHttpConfig $ do
   r <- req POST (http "localhost") (ReqBodyJson ac) jsonResponse (port 8765)
-  let _ = responseBody r :: Value
-  return ()
+  rBody <- if responseStatusCode r == 200
+    then return (responseBody r :: AddNotesResult)
+    else throw $ RequestException $ B.unpack $ responseStatusMessage r
+  liftIO $ print rBody
 
 srcToDstName :: Time -> Time -> FilePath -> FilePath
 srcToDstName start stop src = concat
@@ -185,10 +204,15 @@ createAudio :: Time -> Time -> FilePath -> FilePath -> IO ()
 createAudio start stop src dst = do
   let
     args = ffmpegArgs start stop src dst
-    cmd = proc "ffmpeg" args
-  --cmdStr = "'ffmpeg " ++ unwords args ++ "'"
-  (_, _, _, p) <- createProcess cmd
-  _ <- waitForProcess p
+    cmd = (proc "ffmpeg" args){ std_out = CreatePipe, std_err = CreatePipe }
+    cmdStr = "'ffmpeg " ++ unwords args ++ "'"
+  (_, Just outHdl, Just errHdl, p) <- createProcess cmd
+  exitCode <- waitForProcess p
+  _ <- hGetContents outHdl -- drain pipe
+  err <- hGetContents errHdl
+  case exitCode of
+    ExitSuccess -> TIO.putStrLn $ T.concat ["Processed: ", T.pack src, " ", showTimeUnits start, "-", showTimeUnits stop]
+    ExitFailure code -> throw $ ProcessException $ cmdStr ++ " quit with exit code " ++ show code ++ "\n" ++ err
   return ()
 
 ffmpegArgs :: Time -> Time -> FilePath -> FilePath -> [String]
