@@ -52,5 +52,5 @@ spec = do
   describe "subtitlesToXml" $ do
     it "from a list of Subtitle data, create a XML string, result is not empty" $
       let subtitles = [subtitle1, subtitle2, subtitle3]
-          xml = subtitlesToXml subtitles
+          xml = subtitlesToXml "test.ogg" subtitles
       in xml `shouldSatisfy` (('<' ==) . T.head)

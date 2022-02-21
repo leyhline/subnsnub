@@ -56,6 +56,7 @@ data AudioToSubOptions = AudioToSubOptions
 
 data SubToHtmlOptions  = SubToHtmlOptions
   { subInputFile   :: FilePath
+  , audioSrcPath   :: FilePath
   , htmlOutputFile :: Maybe FilePath
   }
 
@@ -95,6 +96,7 @@ commandParser = hsubparser
 subToHtmlOptions :: Parser SubToHtmlOptions
 subToHtmlOptions = SubToHtmlOptions
   <$> strArgument (metavar "FILE")
+  <*> strArgument (metavar "FILE")
   <*> optional (strOption
     (  long "output"
     <> short 'o'
@@ -102,10 +104,10 @@ subToHtmlOptions = SubToHtmlOptions
     <> help "HTML file destination path, needs subnsnub.ogg audio in same directory (default: stdout)" ))
 
 subToHtml :: SubToHtmlOptions -> IO ()
-subToHtml (SubToHtmlOptions input output) =
+subToHtml (SubToHtmlOptions input audSrcPath output) =
   withFile input ReadMode (\hdl -> do
     contents <- TIO.hGetContents hdl
-    let html = subtitlesToXml $ readSrt contents
+    let html = subtitlesToXml audSrcPath $ readSrt contents
     maybe (TIO.putStrLn html) (`writeToFile` html) output)
 
 audioToSubOptions :: Parser AudioToSubOptions

@@ -123,8 +123,8 @@ subtitleParser = do
       endOfInput <|> endOfLine
       return t
 
-subtitlesToXml :: [Subtitle] -> Text
-subtitlesToXml cs = "<!DOCTYPE html>\n" `T.append` T.pack (ppElement eHtml)
+subtitlesToXml :: FilePath -> [Subtitle] -> Text
+subtitlesToXml audioSrcPath cs = "<!DOCTYPE html>\n" `T.append` T.pack (ppElement eHtml)
   where
     (spanElems, intervals) = unzip $ mapMaybe toSpanElement cs
     eHtml = node (unqual "html") ([Attr (unqual "lang") "ja"], [eHead, eBody])
@@ -134,8 +134,10 @@ subtitlesToXml cs = "<!DOCTYPE html>\n" `T.append` T.pack (ppElement eHtml)
     eStyle = node (unqual "style") (CData CDataText css Nothing)
     eScript = node (unqual "script") (CData CDataRaw
       (js ++ "\nvar gIntervals = " ++ show (map (\(x,y) -> [x,y]) intervals) ++ ";\nwindow.onload = main;") Nothing)
-    eBody = node (unqual "body") (eAudioSrc : foldr spanToPs [] spanElems)
-    eAudioSrc = node (unqual "audio") ([Attr (unqual "id") audioSourceId, Attr (unqual "src") "subnsnub.ogg"], ""::String) -- TODO: .ogg needs to be variable
+    eBody = node (unqual "body") (eNoscript : eAudioSrc : foldr spanToPs [] spanElems)
+    eNoscript = node (unqual "noscript")
+      (node (unqual "p") ("Unfortunately, full functionality requires JavaScript."::String))
+    eAudioSrc = node (unqual "audio") ([Attr (unqual "id") audioSourceId, Attr (unqual "src") audioSrcPath, Attr (unqual "controls") ""], ""::String)
     spanToPs :: Element -> [Element] -> [Element]
     spanToPs eSpan [] = [node (unqual "p") (classAttrFromElemText eSpan, eSpan)]
     spanToPs eSpan (p@Element
@@ -172,7 +174,7 @@ maybeHead (x:_) = Just x
 
 css :: String
 css = "\
-\." ++ narrationClassVal ++ "{ padding-left: 1em; } \
+\." ++ narrationClassVal ++ " { padding-left: 1em; } \
 \." ++ audibleClassVal ++ ":hover { background-color: lavender; cursor: pointer; }"
 
 js :: String
