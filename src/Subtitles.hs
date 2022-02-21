@@ -175,7 +175,8 @@ maybeHead (x:_) = Just x
 css :: String
 css = "\
 \." ++ narrationClassVal ++ " { padding-left: 1em; } \
-\." ++ audibleClassVal ++ ":hover { background-color: lavender; cursor: pointer; }"
+\." ++ audibleClassVal ++ ":hover { background-color: lavender; cursor: pointer; } \
+\#" ++ audioSourceId ++ " { width: 100%; min-width: 20em; max-width: 60em; }"
 
 js :: String
 js = "\
