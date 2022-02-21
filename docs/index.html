@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <style>.nrr{ padding-left: 1em; } .aud:hover { background-color: lavender; cursor: pointer; }</style>
+    <style>.nrr { padding-left: 1em; } .aud:hover { background-color: lavender; cursor: pointer; } #audsrc { width: 100%; min-width: 20em; max-width: 60em; }</style>
     <script>var gAudioStopTime = 0;
 function main() {
   const audioElem = document.getElementById('audsrc');
@@ -34,13 +34,19 @@ window.onload = main;</script>
       <li>Subtitles chapter 1: <a href="gongitsune_01_niimi.srt">gongitsune_01_niimi.srt</a></li>
       <li>Audio chapter 1: <a href="gongitsune_01_niimi.ogg">gongitsune_01_niimi.ogg</a></li>
     </ul>
-    <h3>generated content starts here</h3>
-   <audio id="audsrc" src="gongitsune_01_niimi.ogg"></audio>
-    <p class="nrr">
-      <span class="aud">ごん狐</span>
+    <noscript>
+      <p>Unfortunately, full functionality requires JavaScript.</p>
+    </noscript>
+    <audio id="audsrc" src="gongitsune_01_niimi.ogg" controls=""></audio>
+    <p>
+      <span class="aud">
+        <b>ごん狐</b>
+      </span>
     </p>
-    <p class="nrr">
-      <span class="aud">新美南吉</span>
+    <p>
+      <span class="aud">
+        <i>新美南吉</i>
+      </span>
     </p>
     <p class="nrr">
       <span class="aud">こちらはLibriVoxです。</span>
@@ -48,11 +54,15 @@ window.onload = main;</script>
     <p class="nrr">
       <span class="aud">URL</span>
     </p>
-    <p class="nrr">
-      <span class="aud">librivox.org</span>
+    <p>
+      <span class="aud">
+        <u>librivox.org</u>
+      </span>
     </p>
-    <p class="nrr">
-      <span class="aud">一</span>
+    <p>
+      <span class="aud">
+        <b>一</b>
+      </span>
     </p>
     <p class="nrr">
       <span class="aud">
