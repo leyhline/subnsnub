@@ -27,7 +27,6 @@ See: <https://foosoft.net/projects/anki-connect/>
 -}
 module AnkiConnect
   ( subtitlesToAnki
-  , mkAddNoteAction
   , mkAddNotesAction
   ) where
 
@@ -67,9 +66,7 @@ instance ToJSON Action where
   toEncoding = genericToEncoding defaultOptions
 
 data Params
-  = AddNote
-    { note :: Note }
-  | AddNotes
+  = AddNotes
     { notes :: [Note] }
   deriving (Generic, Show)
 
@@ -126,15 +123,8 @@ data Media = Media
 instance ToJSON Media where
   toEncoding = genericToEncoding defaultOptions { omitNothingFields = True }
 
-data AddNoteResult = AddNoteResult
-  { result :: Maybe Integer
-  , error  :: Maybe Text
-  } deriving (Generic, Show)
-
-instance FromJSON AddNoteResult
-
 data AddNotesResult = AddNotesResult
-  { result :: Maybe [Integer]
+  { result :: [Maybe Integer]
   , error  :: Maybe Text
   } deriving (Generic, Show)
 
@@ -175,10 +165,6 @@ cleanBaseName = mapMaybe f
           | isAlphaNum c = Just c
           | otherwise = Nothing
 
-mkAddNoteAction :: SubtitleMarkup -> FilePath -> Action
-mkAddNoteAction sub audioPath =
-  Action "addNote" 6 (AddNote $ mkNote sub audioPath)
-
 mkAddNotesAction :: [SubtitleMarkup] -> [FilePath] -> Action
 mkAddNotesAction subs audioPaths =
   Action "addNotes" 6 (AddNotes $ zipWith mkNote subs audioPaths)
@@ -211,7 +197,7 @@ createAudio start stop src dst = do
   _ <- hGetContents outHdl -- drain pipe
   err <- hGetContents errHdl
   case exitCode of
-    ExitSuccess -> TIO.putStrLn $ T.concat ["Processed: ", T.pack src, " ", showTimeUnits start, "-", showTimeUnits stop]
+    ExitSuccess -> (TIO.putStr $ T.concat ["Processed: ", T.pack src, " ", showTimeUnits start, "-", showTimeUnits stop, "\r"]) >> hFlush stdout
     ExitFailure code -> throw $ ProcessException $ cmdStr ++ " quit with exit code " ++ show code ++ "\n" ++ err
   return ()
 

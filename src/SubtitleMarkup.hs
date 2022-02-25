@@ -98,4 +98,4 @@ subtitleContentToAnki = \case
   SubItalic markup -> showSubtitleMarkup markup
   SubUnderline markup -> showSubtitleMarkup markup
   SubRuby markup -> showSubtitleMarkup markup
-  SubRt markup -> T.concat ["[", showSubtitleMarkup markup, "] "]
+  SubRt _ -> ""
