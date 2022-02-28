@@ -52,6 +52,7 @@ data AudioToSubOptions = AudioToSubOptions
   , noiseTolerance  :: Integer
   , silenceDuration :: Double
   , subDefault      :: Text
+  , useVtt          :: Bool
   }
 
 data SubToHtmlOptions  = SubToHtmlOptions
@@ -136,13 +137,16 @@ audioToSubOptions = AudioToSubOptions
     <> metavar "STRING"
     <> value ""
     <> help "Default text for each subtitle output (default: <blank>)")
+  <*>  switch
+    (  long "vtt"
+    <> help "Use WebVTT format instead of SRT")
 
 audioToSub :: AudioToSubOptions -> IO ()
-audioToSub (AudioToSubOptions input output noise duration subdefault) = do
+audioToSub (AudioToSubOptions input output noise duration subdefault vtt) = do
   intervals <- detectSilence noise duration input
   let subtitles = intervalsToSubtitles duration subdefault intervals
-      srt = srtSubtitles subtitles
-  maybe (TIO.putStrLn srt) (`writeToFile` srt) output
+      sub = if vtt then vttSubtitles subtitles else srtSubtitles subtitles
+  maybe (TIO.putStrLn sub) (`writeToFile` sub) output
 
 intervalsToSubtitles :: Double -> Text -> [SilenceInterval] -> [Subtitle]
 intervalsToSubtitles d subdefault ivls = zipWith3 f [1..] ivls (tail ivls)

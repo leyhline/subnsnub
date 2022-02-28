@@ -68,7 +68,7 @@ showTime :: Char -> Time -> Text
 showTime mssep (Time h m s ms) = T.pack $ printf ("%02d:%02d:%02d" ++ mssep:"%03d") h m s ms
 
 showTimeUnits :: Time -> Text
-showTimeUnits (Time h m s ms) = T.pack $ printf ("%02dh%02dm%02ds%03dms") h m s ms
+showTimeUnits (Time h m s ms) = T.pack $ printf "%02dh%02dm%02ds%03dms" h m s ms
 
 secondsToTime :: Double -> Time
 secondsToTime d = Time h m s ms
@@ -85,7 +85,7 @@ srtSubtitles = T.intercalate "\n\n" . map (showSubtitle ',')
 
 vttSubtitles :: [Subtitle] -> Text
 vttSubtitles = T.append header . T.intercalate "\n\n" . map (showSubtitle '.')
-  where header = "WEBVTT\n\n"
+  where header = "WEBVTT\nKind: subtitles\nLanguage: ja\n\n"
 
 showSubtitle :: Char -> Subtitle -> Text
 showSubtitle mssep (Subtitle c a da cs) = T.concat [T.pack $ show c, "\n", toText a, " --> ", toText da, "\n", showSubtitleMarkup cs]
