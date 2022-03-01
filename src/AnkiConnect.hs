@@ -35,7 +35,8 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Aeson
 import qualified Data.ByteString.Char8 as B
 import Data.Char
-import Data.Maybe (mapMaybe)
+import Data.Either (lefts)
+import Data.Maybe (mapMaybe, catMaybes, fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -47,7 +48,7 @@ import System.IO
 import System.IO.Temp
 import System.FilePath
 import Subtitles (Subtitle(..), Time, showTime, showTimeUnits)
-import SubtitleMarkup (Markup, toAnki)
+import SubtitleMarkup (Markup, toAnki, showSub)
 
 data AnkiConnectException
   = ProcessException String
@@ -132,9 +133,14 @@ instance FromJSON AddNotesResult
 
 subtitlesToAnki :: [Subtitle] -> FilePath -> IO ()
 subtitlesToAnki subs audioSrc = do
-  withSystemTempDirectory "subnsnub" f
+  maybeIds <- withSystemTempDirectory "subnsnub" f
+  let
+    logs :: [Either Markup Integer]
+    logs = zipWith (\Subtitle { markup = sub } -> maybe (Left sub) Right) subs maybeIds
+  -- [Either FailureSub SuccessNoteId] -> just print failure to stdout
+  mapM_ (TIO.putStrLn . T.append "Failure: " . showSub) (lefts logs)
   where
-    f :: FilePath -> IO ()
+    f :: FilePath -> IO [Maybe Integer]
     f tempdir = sendAction . uncurry mkAddNotesAction . unzip =<< mapM
       (\(Subtitle _ start stop sub) -> do
         let audioDstName = srcToDstName start stop audioSrc
@@ -143,13 +149,20 @@ subtitlesToAnki subs audioSrc = do
         return (sub, audioDstDir)
       ) subs
 
-sendAction :: Action -> IO ()
+sendAction :: Action -> IO [Maybe Integer]
 sendAction ac = runReq defaultHttpConfig $ do
   r <- req POST (http "localhost") (ReqBodyJson ac) jsonResponse (port 8765)
   rBody <- if responseStatusCode r == 200
     then return (responseBody r :: AddNotesResult)
     else throw $ RequestException $ B.unpack $ responseStatusMessage r
-  liftIO $ print rBody
+  liftIO (putStrLn "" >> putStrLn (buildMsg rBody))
+  return $ result rBody
+  where
+    buildMsg (AddNotesResult results errMsg) =
+      let totalNotes = length results
+          goodNotes  = length $ catMaybes results
+          msg = fromMaybe "None" errMsg
+      in concat ["Notes creates: ", show goodNotes, "/", show totalNotes, "; error: ", T.unpack msg]
 
 srcToDstName :: Time -> Time -> FilePath -> FilePath
 srcToDstName start stop src = concat
