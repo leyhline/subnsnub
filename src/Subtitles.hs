@@ -36,7 +36,7 @@ module Subtitles
   , showTimeUnits
   ) where
 
-import SubtitleMarkup
+import qualified SubtitleMarkup as Sub
 import Control.Applicative
 import Control.Exception
 import Text.Printf
@@ -56,7 +56,7 @@ data Subtitle = Subtitle
   { counter   :: Integer
   , appear    :: Time
   , disappear :: Time
-  , markup    :: SubtitleMarkup
+  , markup    :: Sub.Markup
   }
   deriving (Eq, Show)
 
@@ -88,7 +88,7 @@ vttSubtitles = T.append header . T.intercalate "\n\n" . map (showSubtitle '.')
   where header = "WEBVTT\nKind: subtitles\nLanguage: ja\n\n"
 
 showSubtitle :: Char -> Subtitle -> Text
-showSubtitle mssep (Subtitle c a da cs) = T.concat [T.pack $ show c, "\n", toText a, " --> ", toText da, "\n", showSubtitleMarkup cs]
+showSubtitle mssep (Subtitle c a da cs) = T.concat [T.pack $ show c, "\n", toText a, " --> ", toText da, "\n", Sub.showSub cs]
   where toText = showTime mssep
 
 readSrt :: Text -> [Subtitle]
@@ -104,7 +104,7 @@ subtitleParser = do
   da <- time
   endOfLine
   mtext <- many' textLine
-  return $ Subtitle i a da (readSubtitleMarkup $ T.concat mtext)
+  return $ Subtitle i a da (Sub.readSub $ T.concat mtext)
   where
     time :: Parser Time
     time = do
@@ -156,7 +156,7 @@ subtitlesToXml audioSrcPath cs = "<!DOCTYPE html>\n" `T.append` T.pack (ppElemen
 toSpanElement :: Subtitle -> Maybe (Element, (Double, Double))
 toSpanElement (Subtitle _ a da cs) = if null cs
   then Nothing
-  else Just (node (unqual "span") ([aClsAud], subtitleMarkupToXml cs), (timeToSeconds a, timeToSeconds da))
+  else Just (node (unqual "span") ([aClsAud], Sub.toXml cs), (timeToSeconds a, timeToSeconds da))
     where aClsAud = Attr (unqual "class") audibleClassVal
 
 audibleClassVal :: String

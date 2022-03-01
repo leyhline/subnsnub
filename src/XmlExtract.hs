@@ -27,25 +27,25 @@ module XmlExtract
   ( extractParagraphs
   ) where
 
-import SubtitleMarkup
+import SubtitleMarkup (Markup, readXml, Content(SubText))
 import Data.List (find)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Text.XML.Light
 
-extractParagraphs :: Text -> [SubtitleMarkup]
+extractParagraphs :: Text -> [Markup]
 extractParagraphs = maybe [] processHtml . find html . onlyElems . parseXML
   where html (Element (QName "html" _ _) _ _ _) = True
         html _ = False
 
-processHtml :: Element -> [SubtitleMarkup]
+processHtml :: Element -> [Markup]
 processHtml = map processP . findPs
 
 findPs :: Element -> [Element]
 findPs = filterElementsName (\(QName name _ _) -> name == "p")
 
-processP :: Element -> SubtitleMarkup
+processP :: Element -> Markup
 processP (Element _ _ contents _) =
-  let paragraph = concatMap xmlToSubtitleMarkup contents
+  let paragraph = concatMap readXml contents
       verbatim = [SubText $ T.pack $ concatMap showContent contents]
   in if null paragraph then verbatim else paragraph

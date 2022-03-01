@@ -25,7 +25,7 @@ import qualified Data.Text.IO as TIO
 import Options.Applicative
 import AnkiConnect
 import Subtitles
-import SubtitleMarkup
+import SubtitleMarkup (Content(SubText), showSub)
 import XmlExtract
 import SilenceDetect
 
@@ -168,7 +168,7 @@ xmlExtract (XmlExtractOptions input output) =
   withFile input ReadMode (\hdl -> do
     contents <- TIO.hGetContents hdl
     let ps = extractParagraphs contents
-        txt = T.intercalate "\n\n" (map showSubtitleMarkup ps)
+        txt = T.intercalate "\n\n" (map showSub ps)
     maybe (TIO.putStrLn txt) (`writeToFile` txt) output)
 
 toAnkiOptions :: Parser ToAnkiOptions

@@ -6,10 +6,10 @@ module AnkiConnectSpec
 
 import Data.Aeson
 import AnkiConnect
-import SubtitleMarkup
+import SubtitleMarkup (Markup, Content(..))
 import Test.Hspec
 
-subs :: [SubtitleMarkup]
+subs :: [Markup]
 subs =
   [ [SubText "好き"]
   , [SubText "嫌い"]

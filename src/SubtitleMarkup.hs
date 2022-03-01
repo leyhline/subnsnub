@@ -19,83 +19,83 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -}
 
 {-|
-Module      : SubtitleMarkup
+Module      : Markup
 Description : Data type for subtitle with basic markup.
 
 Mainly for text with simple markup tags:
 <b />, <i />, <u />, <ruby />, <rt />
 -}
 module SubtitleMarkup
-  ( SubtitleMarkup
-  , SubtitleContent(..)
-  , showSubtitleMarkup
-  , readSubtitleMarkup
-  , xmlToSubtitleMarkup
-  , subtitleMarkupToXml
-  , subtitleMarkupToAnki
+  ( Markup
+  , Content(..)
+  , showSub
+  , readSub
+  , readXml
+  , toXml
+  , toAnki
   ) where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Text.XML.Light
+import qualified Text.XML.Light as XML
 
-type SubtitleMarkup = [SubtitleContent]
+type Markup = [Content]
 
-data SubtitleContent
+data Content
   = SubText Text
-  | SubBold SubtitleMarkup
-  | SubItalic SubtitleMarkup
-  | SubUnderline SubtitleMarkup
-  | SubRuby SubtitleMarkup
-  | SubRt SubtitleMarkup
+  | SubBold Markup
+  | SubItalic Markup
+  | SubUnderline Markup
+  | SubRuby Markup
+  | SubRt Markup
   deriving (Show, Eq)
 
-showSubtitleMarkup :: SubtitleMarkup -> Text
-showSubtitleMarkup = T.concat . map showSubtitleContent
+showSub :: Markup -> Text
+showSub = T.concat . map showContent
 
-showSubtitleContent :: SubtitleContent -> Text
-showSubtitleContent = \case
-  SubText text -> text
-  SubBold markup -> T.concat ["<b>", showSubtitleMarkup markup, "</b>"]
-  SubItalic markup -> T.concat ["<i>", showSubtitleMarkup markup, "</i>"]
-  SubUnderline markup -> T.concat ["<u>", showSubtitleMarkup markup, "</u>"]
-  SubRuby markup -> T.concat ["<ruby>", showSubtitleMarkup markup, "</ruby>"]
-  SubRt markup -> T.concat ["<rt>", showSubtitleMarkup markup, "</rt>"]
+showContent :: Content -> Text
+showContent = \case
+  SubText text        -> text
+  SubBold markup      -> T.concat ["<b>", showSub markup, "</b>"]
+  SubItalic markup    -> T.concat ["<i>", showSub markup, "</i>"]
+  SubUnderline markup -> T.concat ["<u>", showSub markup, "</u>"]
+  SubRuby markup      -> T.concat ["<ruby>", showSub markup, "</ruby>"]
+  SubRt markup        -> T.concat ["<rt>", showSub markup, "</rt>"]
 
-readSubtitleMarkup :: Text -> SubtitleMarkup
-readSubtitleMarkup = concatMap xmlToSubtitleMarkup . parseXML
+readSub :: Text -> Markup
+readSub = concatMap readXml . XML.parseXML
 
-xmlToSubtitleMarkup :: Content -> SubtitleMarkup
-xmlToSubtitleMarkup = \case
-  (Elem (Element (QName "b" _ _) _ contents _)) -> [SubBold $ concatMap xmlToSubtitleMarkup contents]
-  (Elem (Element (QName "i" _ _) _ contents _)) -> [SubItalic $ concatMap xmlToSubtitleMarkup contents]
-  (Elem (Element (QName "u" _ _) _ contents _)) -> [SubUnderline $ concatMap xmlToSubtitleMarkup contents]
-  (Elem (Element (QName "ruby" _ _) _ contents _)) -> [SubRuby $ concatMap xmlToSubtitleMarkup contents]
-  (Elem (Element (QName "rt" _ _) _ contents _)) -> [SubRt $ concatMap xmlToSubtitleMarkup contents]
-  (Elem (Element (QName "span" _ _) _ contents _)) -> concatMap xmlToSubtitleMarkup contents
-  (Text CData { cdData = text }) -> [SubText $ T.pack text]
+readXml :: XML.Content -> Markup
+readXml = \case
+  (XML.Elem (XML.Element (XML.QName "b" _ _) _ contents _))    -> [SubBold      $ concatMap readXml contents]
+  (XML.Elem (XML.Element (XML.QName "i" _ _) _ contents _))    -> [SubItalic    $ concatMap readXml contents]
+  (XML.Elem (XML.Element (XML.QName "u" _ _) _ contents _))    -> [SubUnderline $ concatMap readXml contents]
+  (XML.Elem (XML.Element (XML.QName "ruby" _ _) _ contents _)) -> [SubRuby      $ concatMap readXml contents]
+  (XML.Elem (XML.Element (XML.QName "rt" _ _) _ contents _))   -> [SubRt        $ concatMap readXml contents]
+  (XML.Elem (XML.Element (XML.QName "span" _ _) _ contents _)) -> concatMap readXml contents
+  (XML.Text XML.CData { XML.cdData = text })                   -> [SubText      $ T.pack text]
   _ -> []
 
-subtitleMarkupToXml :: SubtitleMarkup -> [Content]
-subtitleMarkupToXml = map subtitleContentToXml
+toXml :: Markup -> [XML.Content]
+toXml = map contentToXml
 
-subtitleContentToXml :: SubtitleContent -> Content
-subtitleContentToXml = \case
-  SubText text -> Text $ CData CDataText (T.unpack text) Nothing
-  SubBold markup -> Elem $ node (unqual "b") (subtitleMarkupToXml markup)
-  SubItalic markup -> Elem $ node (unqual "i") (subtitleMarkupToXml markup)
-  SubUnderline markup -> Elem $ node (unqual "u") (subtitleMarkupToXml markup)
-  SubRuby markup -> Elem $ node (unqual "ruby") (subtitleMarkupToXml markup)
-  SubRt markup -> Elem $ node (unqual "rt") (subtitleMarkupToXml markup)
+contentToXml :: Content -> XML.Content
+contentToXml = \case
+  SubText text        -> XML.Text $ XML.CData XML.CDataText (T.unpack text) Nothing
+  SubBold markup      -> XML.Elem $ XML.node (XML.unqual "b") (toXml markup)
+  SubItalic markup    -> XML.Elem $ XML.node (XML.unqual "i") (toXml markup)
+  SubUnderline markup -> XML.Elem $ XML.node (XML.unqual "u") (toXml markup)
+  SubRuby markup      -> XML.Elem $ XML.node (XML.unqual "ruby") (toXml markup)
+  SubRt markup        -> XML.Elem $ XML.node (XML.unqual "rt") (toXml markup)
 
-subtitleMarkupToAnki :: SubtitleMarkup -> Text
-subtitleMarkupToAnki = T.concat . map subtitleContentToAnki
+toAnki :: Markup -> Text
+toAnki = T.concat . map contentToAnki
 
-subtitleContentToAnki :: SubtitleContent -> Text
-subtitleContentToAnki = \case
-  SubText text -> text
-  SubBold markup -> showSubtitleMarkup markup
-  SubItalic markup -> showSubtitleMarkup markup
-  SubUnderline markup -> showSubtitleMarkup markup
-  SubRuby markup -> showSubtitleMarkup markup
-  SubRt _ -> ""
+contentToAnki :: Content -> Text
+contentToAnki = \case
+  SubText text        -> text
+  SubBold markup      -> toAnki markup
+  SubItalic markup    -> toAnki markup
+  SubUnderline markup -> toAnki markup
+  SubRuby markup      -> toAnki markup
+  SubRt _             -> ""

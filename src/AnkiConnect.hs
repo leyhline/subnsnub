@@ -47,7 +47,7 @@ import System.IO
 import System.IO.Temp
 import System.FilePath
 import Subtitles (Subtitle(..), Time, showTime, showTimeUnits)
-import SubtitleMarkup
+import SubtitleMarkup (Markup, toAnki)
 
 data AnkiConnectException
   = ProcessException String
@@ -165,16 +165,16 @@ cleanBaseName = mapMaybe f
           | isAlphaNum c = Just c
           | otherwise = Nothing
 
-mkAddNotesAction :: [SubtitleMarkup] -> [FilePath] -> Action
+mkAddNotesAction :: [Markup] -> [FilePath] -> Action
 mkAddNotesAction subs audioPaths =
   Action "addNotes" 6 (AddNotes $ zipWith mkNote subs audioPaths)
 
-mkNote :: SubtitleMarkup -> FilePath -> Note
+mkNote :: Markup -> FilePath -> Note
 mkNote sub audioPath = Note
   "Learning"
   "Japanese sentences"
   (Fields
-    (subtitleMarkupToAnki sub)
+    (toAnki sub)
     (T.pack $ concat [title, " (", startTime, ")"]))
   Nothing
   [T.pack title, "subnsnub"]
@@ -197,7 +197,7 @@ createAudio start stop src dst = do
   _ <- hGetContents outHdl -- drain pipe
   err <- hGetContents errHdl
   case exitCode of
-    ExitSuccess -> (TIO.putStr $ T.concat ["Processed: ", T.pack src, " ", showTimeUnits start, "-", showTimeUnits stop, "\r"]) >> hFlush stdout
+    ExitSuccess -> TIO.putStr (T.concat ["Processed: ", T.pack src, " ", showTimeUnits start, "-", showTimeUnits stop, "\r"]) >> hFlush stdout
     ExitFailure code -> throw $ ProcessException $ cmdStr ++ " quit with exit code " ++ show code ++ "\n" ++ err
   return ()
 

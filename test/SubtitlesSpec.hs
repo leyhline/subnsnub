@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+
 module SubtitlesSpec
   ( spec
   ) where
@@ -8,23 +10,36 @@ import qualified Data.Text as T
 import Subtitles
 import SubtitleMarkup
 
-subtitle1 :: Subtitle
-subtitle1 = Subtitle 1 (secondsToTime 0.0) (secondsToTime 1.0) [SubText "「佐さ藤とう和かず真まさん、"]
-subtitle2 :: Subtitle
-subtitle2 = Subtitle 2 (secondsToTime 2.23) (secondsToTime 4.5678) [SubText "ようこそ死後の世界へ。"]
-subtitle3 :: Subtitle
-subtitle3 = Subtitle 3 (secondsToTime 5.0) (secondsToTime 6.6789) [SubText "あなたはつい先ほど、不幸にも亡なくなりました。"]
+subtitle1 = Subtitle 1 (secondsToTime 0.0) (secondsToTime 1.0)
+  [ SubText "「"
+  , SubRuby
+    [ SubText "佐"
+    , SubRt [SubText "さ"]
+    , SubText "藤"
+    , SubRt [SubText "とう"]
+    , SubText "和"
+    , SubRt [SubText "かず"]
+    , SubText "真"
+    , SubRt [SubText "ま"]
+    ]
+  , SubText "さん、"]
+subtitle2 = Subtitle 2 (secondsToTime 2.23) (secondsToTime 4.5678)
+  [SubText "ようこそ死後の世界へ。"]
+subtitle3 = Subtitle 3 (secondsToTime 5.0) (secondsToTime 6.6789)
+  [ SubText "あなたはつい先ほど、不幸にも"
+  , SubRuby [SubText "亡", SubRt [SubText "な"]]
+  , SubText "くなりました。"]
 
 expectedSrt :: Text
 expectedSrt = "1\n\
 \00:00:00,000 --> 00:00:01,000\n\
-\「佐さ藤とう和かず真まさん、\n\n\
+\「<ruby>佐<rt>さ</rt>藤<rt>とう</rt>和<rt>かず</rt>真<rt>ま</rt></ruby>さん、\n\n\
 \2\n\
 \00:00:02,230 --> 00:00:04,568\n\
 \ようこそ死後の世界へ。\n\n\
 \3\n\
 \00:00:05,000 --> 00:00:06,679\n\
-\あなたはつい先ほど、不幸にも亡なくなりました。"
+\あなたはつい先ほど、不幸にも<ruby>亡<rt>な</rt></ruby>くなりました。"
 
 spec :: Spec
 spec = do
@@ -46,7 +61,7 @@ spec = do
           expected = [subtitle1, subtitle2, subtitle3]
       in subtitles `shouldBe` expected
     it "converts multiline subtitle to internal Subtitle datatype" $
-      let subtitles = readSrt "3\n00:00:05,000 --> 00:00:06,679\nあなたはつい先ほど、\n不幸にも亡なくなりました。"
+      let subtitles = readSrt "3\n00:00:05,000 --> 00:00:06,679\nあなたはつい先ほど、\n不幸にも<ruby>亡<rt>な</rt></ruby>くなりました。"
           expected = [subtitle3]
       in subtitles `shouldBe` expected
   describe "subtitlesToXml" $ do
