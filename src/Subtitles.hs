@@ -32,8 +32,6 @@ module Subtitles
   , subtitlesToXml
   , Subtitle(..)
   , Time(..)
-  , showTime
-  , showTimeUnits
   ) where
 
 import qualified SubtitleMarkup as Sub
@@ -64,12 +62,6 @@ data Subtitle = Subtitle
 data Time = Time Integer Integer Integer Integer
   deriving (Eq, Ord, Show)
 
-showTime :: Char -> Time -> Text
-showTime mssep (Time h m s ms) = T.pack $ printf ("%02d:%02d:%02d" ++ mssep:"%03d") h m s ms
-
-showTimeUnits :: Time -> Text
-showTimeUnits (Time h m s ms) = T.pack $ printf "%02dh%02dm%02ds%03dms" h m s ms
-
 secondsToTime :: Double -> Time
 secondsToTime d = Time h m s ms
   where
@@ -81,15 +73,19 @@ timeToSeconds :: Time -> Double
 timeToSeconds (Time h m s ms) = fromIntegral h * 3600.0 + fromIntegral m * 60 + fromIntegral s + fromIntegral ms / 1000
 
 srtSubtitles :: [Subtitle] -> Text
-srtSubtitles = T.intercalate "\n\n" . map (showSubtitle ',')
+srtSubtitles = T.intercalate "\n\n" . map showSrtSubtitle
 
 vttSubtitles :: [Subtitle] -> Text
-vttSubtitles = T.append header . T.intercalate "\n\n" . map (showSubtitle '.')
+vttSubtitles = T.append header . T.intercalate "\n\n" . map showVttSubtitle
   where header = "WEBVTT\nKind: subtitles\nLanguage: ja\n\n"
 
-showSubtitle :: Char -> Subtitle -> Text
-showSubtitle mssep (Subtitle c a da cs) = T.concat [T.pack $ show c, "\n", toText a, " --> ", toText da, "\n", Sub.showSub cs]
-  where toText = showTime mssep
+showSrtSubtitle :: Subtitle -> Text
+showSrtSubtitle (Subtitle c a da cs) = T.concat [T.pack $ show c, "\n", toText a, " --> ", toText da, "\n", Sub.showSub cs]
+  where toText (Time h m s ms) = T.pack $ printf "%02d:%02d:%02d,%03d" h m s ms
+
+showVttSubtitle :: Subtitle -> Text
+showVttSubtitle (Subtitle _ a da cs) = T.concat [toText a, " --> ", toText da, "\n", Sub.showSub cs]
+  where toText (Time h m s ms) = T.pack $ if h == 0 then printf "%02d:%02d.%03d" m s ms else printf "%02d:%02d:%02d.%03d" h m s ms
 
 readSrt :: Text -> [Subtitle]
 readSrt input = either (throw . ParserException) id (parseOnly (many' subtitleParser) input)

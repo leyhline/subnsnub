@@ -29,17 +29,12 @@ import SubtitleMarkup (Content(SubText), showSub)
 import XmlExtract
 import SilenceDetect
 
-data Options = Options
-  { xmlExtractCommand :: Command
-  , audioToSubCommand :: Command
-  , subToHtmlCommand  :: Command
-  }
-
 data Command
  = XmlExtract XmlExtractOptions
  | AudioToSub AudioToSubOptions
  | SubToHtml  SubToHtmlOptions
  | ToAnki     ToAnkiOptions
+ | ConvertSub ConvertSubOptions
 
 data XmlExtractOptions = XmlExtractOptions
   { xmlInputFile  :: FilePath
@@ -66,6 +61,11 @@ data ToAnkiOptions = ToAnkiOptions
   , ankiAudioInputFile :: FilePath
   }
 
+data ConvertSubOptions = ConvertSubOptions
+  { convertInput  :: FilePath
+  , convertOutput :: FilePath
+  }
+
 main :: IO ()
 main = execCommand =<< execParser opts
   where
@@ -78,6 +78,7 @@ main = execCommand =<< execParser opts
       AudioToSub o -> audioToSub o
       SubToHtml  o -> subToHtml  o
       ToAnki     o -> toAnki o
+      ConvertSub o -> convertSub o
 
 commandParser :: Parser Command
 commandParser = hsubparser
@@ -90,9 +91,12 @@ commandParser = hsubparser
   <>  command "sub2html"  (info
     (SubToHtml  <$> subToHtmlOptions)
     (progDesc "Convert a subtitle SRT file to a HTML page with audio support"))
-  <>  command "send2anki"    (info
+  <>  command "send2anki" (info
     (ToAnki     <$> toAnkiOptions)
-    (progDesc "Creates Anki flash cards from subtitle fragments with audio (requires anki-connect)")))
+    (progDesc "Creates Anki flash cards from subtitle fragments with audio (requires anki-connect)"))
+  <>  command "convertSub"(info
+    (ConvertSub <$> convertSubOptions)
+    (progDesc "Convert already existing SRT subtitles to WebVTT")))
 
 subToHtmlOptions :: Parser SubToHtmlOptions
 subToHtmlOptions = SubToHtmlOptions
@@ -182,6 +186,19 @@ toAnki (ToAnkiOptions subsFile audioFile) =
     contents <- TIO.hGetContents hdl
     let subs = readSrt contents
     subtitlesToAnki subs audioFile)
+
+convertSubOptions :: Parser ConvertSubOptions
+convertSubOptions = ConvertSubOptions
+  <$> strArgument (metavar "FILE")
+  <*> strArgument (metavar "FILE")
+
+convertSub :: ConvertSubOptions -> IO ()
+convertSub (ConvertSubOptions input output) = do
+  withFile input ReadMode (\hdl -> do
+    contents <- TIO.hGetContents hdl
+    let subs = readSrt contents
+        converted = vttSubtitles subs
+    writeToFile output converted)
 
 writeToFile :: FilePath -> Text -> IO ()
 writeToFile path t = withFile path WriteMode (`TIO.hPutStr` t)

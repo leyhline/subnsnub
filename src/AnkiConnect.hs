@@ -40,6 +40,7 @@ import Data.Maybe (mapMaybe, catMaybes, fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import Text.Printf
 import GHC.Generics
 import Network.HTTP.Req
 import System.Exit
@@ -47,7 +48,7 @@ import System.Process
 import System.IO
 import System.IO.Temp
 import System.FilePath
-import Subtitles (Subtitle(..), Time, showTime, showTimeUnits)
+import Subtitles (Subtitle(..), Time(..))
 import SubtitleMarkup (Markup, toAnki, showSub)
 
 data AnkiConnectException
@@ -171,6 +172,9 @@ srcToDstName start stop src = concat
   , T.unpack $ showTimeUnits stop
   ] <.> "ogg"
 
+showTimeUnits :: Time -> Text
+showTimeUnits (Time h m s ms) = T.pack $ printf "%02dh%02dm%02ds%03dms" h m s ms
+
 cleanBaseName :: String -> String
 cleanBaseName = mapMaybe f
   where f c
@@ -217,9 +221,10 @@ createAudio start stop src dst = do
 ffmpegArgs :: Time -> Time -> FilePath -> FilePath -> [String]
 ffmpegArgs start stop src dst =
   [ "-vn"
-  , "-ss", T.unpack $ showTime '.' start
-  , "-to", T.unpack $ showTime '.' stop
+  , "-ss", showTime start
+  , "-to", showTime stop
   , "-i", src
   , "-map_metadata", "-1", "-ac", "1"
   , "-c:a", "libopus", "-b:a", "24k", "-application", "voip"
   , dst]
+  where showTime (Time h m s ms) = printf "%02d:%02d:%02d.%03d" h m s ms
